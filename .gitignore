@@ -1,0 +1,11 @@
+node_modules/
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+.DS_Store
+*.log
+.env*
+# Ekran görüntüsü ve doğrulama sırasında üretilen geçici çıktılar
+reports/
+.superpowers/
