@@ -34,7 +34,7 @@ export const en: Content = {
       "Teachers are here to teach, not to juggle schedules, payments and message threads.",
     body: "Tutorwise was founded to lighten the daily load of private tutors. We bring lesson plans, assignments, payments and communication with parents into one calm workspace, so your time goes to your students.",
     story:
-      "[PLACEHOLDER: Team and founding story. Who started it, where, and what need it grew out of.]",
+      "It started with a simple observation: most private tutors keep lesson plans in one app, homework in chat threads and payments in a notebook. We built Tutorwise to bring all of that into one place, and we keep improving it with feedback from tutors.",
     values: [
       "Simplicity: every screen does one job well.",
       "Trust: students and parents only see what has been shared with them.",

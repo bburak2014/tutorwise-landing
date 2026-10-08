@@ -34,7 +34,7 @@ export const es: Content = {
       "Los profesores están para enseñar, no para lidiar con horarios, cobros y mensajes.",
     body: "Tutorwise nació para aligerar el día a día de quienes dan clases particulares. Reunimos la planificación, las tareas, los pagos y la comunicación con las familias en un espacio de trabajo tranquilo. Así tu tiempo es para tus alumnos.",
     story:
-      "[POR COMPLETAR: El equipo y la historia de la fundación. Quién lo creó, dónde y a qué necesidad responde.]",
+      "Todo empezó con una observación sencilla: la mayoría de los profesores particulares llevan la planificación en una app, los deberes en chats y los pagos en una libreta. Creamos Tutorwise para reunirlo todo en un solo lugar, y lo seguimos mejorando con las opiniones de los docentes.",
     values: [
       "Sencillez: cada pantalla hace bien una sola cosa.",
       "Confianza: alumnos y familias solo ven lo que se ha compartido con ellos.",

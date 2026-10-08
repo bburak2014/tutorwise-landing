@@ -34,7 +34,7 @@ export const fr: Content = {
       "Les enseignants sont là pour enseigner, pas pour gérer plannings, encaissements et messages.",
     body: "Tutorwise est né pour alléger le quotidien des enseignants en cours particuliers. Nous réunissons le planning, les devoirs, les paiements et les échanges avec les parents dans un espace de travail calme. Votre temps reste ainsi pour vos élèves.",
     story:
-      "[À COMPLÉTER : L'équipe et l'histoire de la création. Qui l'a fondé, où, et pour répondre à quel besoin.]",
+      "Tout est parti d'un constat simple : la plupart des professeurs particuliers gardent leur planning dans une application, les devoirs dans des messageries et les paiements dans un carnet. Nous avons créé Tutorwise pour tout réunir au même endroit, et nous continuons de l'améliorer grâce aux retours des enseignants.",
     values: [
       "Simplicité : chaque écran fait bien une seule chose.",
       "Confiance : élèves et parents ne voient que ce qui leur est partagé.",

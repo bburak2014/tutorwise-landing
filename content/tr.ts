@@ -1,8 +1,8 @@
 /* Kaynak dil. Diğer diller bu dosyanın biçimini birebir izler; eksik ya da
    fazla anahtar derleme hatası verir (content/index.ts).
    Ürün terimleri uygulamanın kendi kataloglarındakiyle aynıdır
-   (derslik: packages/contracts/src/i18n/tr.ts). Gerçek bilgi gereken yerler
-   [YER TUTUCU: …] ile işaretli. */
+   (derslik: packages/contracts/src/i18n/tr.ts). Gerçek bilgi gerekirse
+   [YER TUTUCU: …] ile işaretlenir; sayfada sarı kesik çizgiyle görünür. */
 export const tr = {
   meta: {
     title: "Tutorwise · Özel ders için çalışma alanı",
@@ -37,7 +37,7 @@ export const tr = {
       "Öğretmenler ders anlatmak için var; çizelge, tahsilat ve mesaj trafiği için değil.",
     body: "Tutorwise, özel ders veren öğretmenlerin günlük yükünü hafifletmek için kuruldu. Ders planını, ödevleri, ödemeleri ve veliyle iletişimi tek, sakin bir çalışma alanında topluyoruz. Böylece zamanınız öğrencinize kalır.",
     story:
-      "[YER TUTUCU: Ekip ve kuruluş hikâyesi. Kim kurdu, nerede, hangi ihtiyaçtan doğdu.]",
+      "Her şey basit bir gözlemle başladı: özel ders veren öğretmenlerin çoğu ders planını bir uygulamada, ödevleri yazışmalarda, ödemeleri bir defterde tutuyor. Tutorwise'ı bu dağınıklığı tek bir yerde toplamak için kurduk; öğretmenlerden gelen geri bildirimlerle geliştirmeye devam ediyoruz.",
     values: [
       "Sadelik: her ekran tek bir işi iyi yapar.",
       "Güven: öğrenci ve veli yalnızca kendilerine açılan bilgileri görür.",

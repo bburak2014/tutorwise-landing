@@ -53,3 +53,12 @@ test("non-Turkish catalogs are not Turkish copies", () => {
     assert.deepEqual(copied, [], `${locale} has untranslated Turkish text`);
   }
 });
+
+test("no language still shows a placeholder note on the page", () => {
+  for (const locale of locales) {
+    const notes = leaves(content[locale] as unknown as Tree)
+      .filter(([, text]) => /^\s*\[[^\]]+\]\s*$/.test(text))
+      .map(([path]) => path);
+    assert.deepEqual(notes, [], `${locale} has placeholders`);
+  }
+});

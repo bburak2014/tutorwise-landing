@@ -34,7 +34,7 @@ export const de: Content = {
       "Lehrkräfte sind zum Unterrichten da, nicht für Terminpläne, Zahlungen und Nachrichtenfluten.",
     body: "Tutorwise wurde gegründet, um Nachhilfelehrkräfte im Alltag zu entlasten. Wir bündeln Stundenplanung, Aufgaben, Zahlungen und die Kommunikation mit Eltern in einem ruhigen Arbeitsbereich. So bleibt Ihre Zeit bei Ihren Schülern.",
     story:
-      "[PLATZHALTER: Team und Gründungsgeschichte. Wer hat es gegründet, wo und aus welchem Bedarf.]",
+      "Alles begann mit einer einfachen Beobachtung: Die meisten Nachhilfelehrkräfte führen den Stundenplan in einer App, die Hausaufgaben in Chats und die Zahlungen in einem Notizbuch. Wir haben Tutorwise entwickelt, um all das an einem Ort zusammenzuführen, und verbessern es laufend mit dem Feedback von Lehrkräften.",
     values: [
       "Einfachheit: Jede Ansicht erledigt eine Aufgabe gut.",
       "Vertrauen: Schüler und Eltern sehen nur, was für sie freigegeben ist.",
