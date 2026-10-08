@@ -4,10 +4,12 @@
 (`output: "export"`), React Three Fiber, Drei ve GSAP. 7 dil: tr, en, de, fr, es, zh, ja.
 
 Sayfa kaydırıldıkça açılan bir kitap anlatır: kitap karanlıktan ışığa doğru süzülerek
-gelir, kapak açılır, her özellik bölümünde bir sayfa döner ve sayfadan, o dildeki gerçek
-uygulama ekranını gösteren bir tablet ya da telefon yükselir. Geniş ekranda beş özellik
-tek, sabitlenmiş bir sahnede okunur (soldaki 01–05 çizgisi); sayfa sonunda kitap kapanır,
-sırtı nabız gibi parlar.
+gelir, kapak açılır (üstteki sayfalar havalanıp geri düşer), her özellik bölümünde bir
+sayfa kıvrılarak döner ve sayfadaki çizimler kendiliğinden çizilir; sayfadan bir ışık
+halkasıyla, o dildeki gerçek uygulama ekranını gösteren bir tablet ya da telefon yükselir
+ve ekranı satır satır açılır. Kamera her bölümde kitabın çevresinde süzülür. Geniş ekranda
+beş özellik tek, sabitlenmiş bir sahnede okunur (soldaki 01–05 çizgisi); sayfa sonunda
+kitap kapanır, sırtı nabız gibi parlar.
 
 ## Başlatma
 
@@ -41,7 +43,9 @@ pnpm e2e          # ziyaretçi gibi: bağlantılar, menü, bölüm çizgisi, iml
 | Bağlantılar (uygulama, mağazalar, gizlilik) | `lib/site.ts` → `links` (şimdilik hepsi `#`). |
 | Dil çerezinin alan adı | `lib/site.ts` → `cookieDomain` (örn. `.tutorwise.academy`, uygulamayla paylaşmak için). |
 | Kitabın her bölümdeki pozu | `three/choreography.ts` → `keys.wide` / `keys.narrow`. |
-| Sayfa görselleri (yazısız) | `three/pageArt.ts`. |
+| Sayfa görselleri (yazısız) ve çizilme sırası | `three/pageArt.ts` (`inkLayers`: çizim + zaman haritası). |
+| Sayfaların kıvrımı, kitabın ölçüleri | `three/bookShape.ts`, blok geometrisi `three/pageBlock.ts`. |
+| Kameranın her sahnedeki yaklaşma/dönmesi | `three/choreography.ts` → `dolly`, `orbit`, `tilt`; hesap `three/camera.ts`. |
 | Açılış, sırt ışığı, bölüm geçişi (saf fonksiyonlar) | `three/choreography.ts` → `introPose`, `spineGlow`, `chapterIndex`. |
 | Işık huzmesi, toz | `three/Atmosphere.tsx`. |
 

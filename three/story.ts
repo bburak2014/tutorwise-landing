@@ -20,4 +20,7 @@ export const story = {
   /** Son kaydırma ya da imleç hareketinin zamanı (performance.now). Boşta
    *  tuval yarı hızda çizilir (Experience → FrameScheduler). */
   activeAt: 0,
+  /** Kaydırmadan bağımsız süren bir animasyonun (sayfadaki çizimler) bitiş
+   *  zamanı; o zamana kadar tuval her karede çizilir. */
+  busyUntil: 0,
 };

@@ -6,6 +6,8 @@ import { useEffect, useMemo, useRef } from "react";
 import {
   Bone,
   BoxGeometry,
+  CanvasTexture,
+  CylinderGeometry,
   DoubleSide,
   Float32BufferAttribute,
   MeshPhysicalMaterial,
@@ -18,36 +20,41 @@ import {
   type Group,
   type Material,
   type Mesh,
+  type Texture,
 } from "three";
-import { pageTurn, smoothstep } from "./choreography.ts";
+import { BLOCK, GAP, LEAVES, PAGE_H, PAGE_W, bendAngles, gutterProfile } from "./bookShape.ts";
+import { inkProgress, pageTurn, riffle, smoothstep } from "./choreography.ts";
 import { ChapterDevices } from "./Device.tsx";
 import { frame } from "./Director.tsx";
-import { drawPage, type PageArt } from "./pageArt.ts";
+import { blankPage, coverMask, drawPage, inkLayers, paperEdges, type PageArt } from "./pageArt.ts";
+import { bendBlock, pageBlock } from "./pageBlock.ts";
 import { story } from "./story.ts";
 import { canvasTexture } from "./textures.ts";
 
-/* Kitabın ölçüleri (dünya birimi). Cilt (sırt) x = 0'da; dönmemiş sayfalar
-   sağda (+x), dönmüş sayfalar solda. Sayfa yüzü +z'ye, kameraya bakar. */
-export const PAGE_W = 1.28;
-export const PAGE_H = 1.71;
+export { PAGE_H, PAGE_W } from "./bookShape.ts";
+
 const LEAF_D = 0.0035;
 const SEGMENTS = 24;
 const SEG_W = PAGE_W / SEGMENTS;
-const LEAVES = 6;
-const GAP = 0.0065;
-const BLOCK = 0.07;
 const COVER_D = 0.03;
 const OVER = 0.035;
 const COVER_W = PAGE_W + OVER;
 const COVER_H = PAGE_H + OVER * 2;
-/** Sağ yığının (blok + yapraklar) üst yüzü. */
+/** Sağ yığının (blok + yapraklar) en yüksek yeri. */
 export const Z_TOP = BLOCK + (LEAVES + 1) * GAP;
 const Z_COVER_CLOSED = Z_TOP + COVER_D / 2 + 0.002;
 const Z_COVER_OPEN = -COVER_D / 2;
 /** Kapak menteşesi iki konumun ortasında: π dönünce kapak tam yerine oturur. */
 const COVER_PIVOT = (Z_COVER_CLOSED + Z_COVER_OPEN) / 2;
 const COVER_HALF = (Z_COVER_CLOSED - Z_COVER_OPEN) / 2;
+/** Yuvarlak sırt: arka kapağın altından ön kapağın üstüne yarım silindir. */
+const SPINE_BOTTOM = -COVER_D;
+const SPINE_TOP = Z_COVER_CLOSED + COVER_D / 2;
+const SPINE_R = (SPINE_TOP - SPINE_BOTTOM) / 2;
+const SPINE_BULGE = 0.45;
 const MARKER = "#ffd84a";
+/** Sayfa etkin olunca çizimlerin tamamlanma süresi (ms). */
+const INK_MS = 1600;
 
 /** CC0 dokular (public/3d/LICENSES.md): kapak kumaşı ve kâğıt lifi. */
 const SURFACE_MAPS = [
@@ -67,6 +74,9 @@ const leafArt: [front: PageArt, back: PageArt][] = [
   ["payments", "chat"],
   ["summary", "lines"],
 ];
+
+/** Açık sayfaların dinlenme biçimi (tam kıvrım): sırtta gömük, ortada kubbeli. */
+const REST = bendAngles(gutterProfile, SEGMENTS, PAGE_W);
 
 /** Genişlik boyunca bölünmüş ince kutu; her köşe iki komşu kemiğe bağlı. */
 function leafGeometry() {
@@ -94,7 +104,9 @@ function leafGeometry() {
   return geometry;
 }
 
-function makeLeaf(geometry: BoxGeometry, front: Material, back: Material, edge: Material) {
+type Ink = { progress: { value: number }; spread: number };
+
+function makeLeaf(geometry: BoxGeometry, front: Material, back: Material, edge: Material, inks: Ink[]) {
   const bones: Bone[] = [];
   for (let i = 0; i <= SEGMENTS; i++) {
     const bone = new Bone();
@@ -109,7 +121,81 @@ function makeLeaf(geometry: BoxGeometry, front: Material, back: Material, edge: 
   mesh.frustumCulled = false;
   mesh.add(bones[0]);
   mesh.bind(new Skeleton(bones));
-  return { mesh, bones };
+  return { mesh, bones, inks };
+}
+
+type Leaf = ReturnType<typeof makeLeaf>;
+type Stack = { flip: number; fan: number; cover: number; curl: number; left: number; rootZ: number; still: boolean };
+
+/** Bir yaprağın kemikleri ve yüksekliği: dönüş, yelpaze, kapakla havalanma,
+ *  dinlenme biçimi (sağda yığının eğrisi, solda aynası) ve kâğıt kıvrımı. */
+function poseLeaf({ mesh, bones }: Leaf, i: number, s: Stack) {
+  const turn = pageTurn(s.flip, i);
+  // Kapak açılırken üstteki sayfalar havalanır; dönen sayfanın altındaki
+  // sayfa da hava akımıyla biraz kalkar.
+  const follow = i > 0 && turn === 0 ? Math.sin(Math.PI * pageTurn(s.flip, i - 1)) * 0.1 : 0;
+  const lift = s.still ? 0 : riffle(s.cover, i) + follow;
+  const fanAngle = -Math.PI * (0.1 + (0.8 * i) / (LEAVES - 1));
+  const angle = -Math.PI * turn + (fanAngle + Math.PI * turn) * s.fan - lift;
+  const across = Math.min(1, Math.max(0, -angle / Math.PI));
+  const rest = (s.curl * (1 - across) - s.curl * s.left * across) * (1 - s.fan);
+  bones[0].rotation.y = angle + REST[0] * rest;
+  // Dönen sayfa kâğıt gibi bükülür: ucu kökten geride kalır.
+  const lag = Math.sin(Math.PI * turn) * 1.05 + s.fan * 0.12 + lift * 0.7;
+  for (let b = 1; b < bones.length; b++)
+    bones[b].rotation.y = REST[b] * rest + (lag / SEGMENTS) * (0.2 + 1.8 * Math.pow(b / SEGMENTS, 1.5));
+  const zRight = s.rootZ + (LEAVES - i) * GAP;
+  const zLeft = s.left * s.rootZ + (i + 1) * GAP;
+  mesh.position.z = zRight + (zLeft - zRight) * across;
+}
+
+/** Kâğıt yüzü: çizimsiz sayfanın üstüne çizimler sırayla belirir. `ink`
+ *  çizimler (önceden çarpılmış alfa), `time` her parçanın belirme sırası
+ *  (kırmızı kanal); `progress` 0 boş sayfa, 1 bütün çizimler. Bütün sayfalar
+ *  aynı gölgelendiriciyi paylaşır, dokular ve ilerleme malzemeye özeldir. */
+function inkPaper(blank: Texture, ink: Texture, time: Texture, normal: Texture, rough: Texture) {
+  const progress = { value: 1 };
+  const material = new MeshStandardMaterial({
+    map: blank,
+    normalMap: normal,
+    normalScale: new Vector2(0.45, 0.45),
+    roughnessMap: rough,
+    roughness: 0.92,
+  });
+  // Ön derleme (Experience → precompile) bu dokuları da ekran kartına yükler.
+  material.userData.textures = [ink, time];
+  material.onBeforeCompile = (shader) => {
+    shader.uniforms.uInk = { value: ink };
+    shader.uniforms.uInkTime = { value: time };
+    shader.uniforms.uProgress = progress;
+    shader.fragmentShader = shader.fragmentShader
+      .replace(
+        "#include <common>",
+        "#include <common>\nuniform sampler2D uInk;\nuniform sampler2D uInkTime;\nuniform float uProgress;",
+      )
+      .replace(
+        "#include <map_fragment>",
+        `#include <map_fragment>
+        vec4 inkColor = texture2D(uInk, vMapUv);
+        float inkAt = texture2D(uInkTime, vMapUv).r;
+        float inkShown = smoothstep(inkAt, inkAt + 0.04, uProgress * 1.04);
+        diffuseColor.rgb = diffuseColor.rgb * (1.0 - inkColor.a * inkShown) + inkColor.rgb * inkShown;`,
+      );
+  };
+  return { material, progress };
+}
+
+/** Çizimler: bir açılım etkin olunca (sayfa yerine oturunca) sırayla
+ *  belirir; geri dönülünce silinir, yeniden gelince yeniden çizilir. */
+function markSpreads(since: (number | null)[], pose: { cover: number; flip: number }, now: number, instant: boolean) {
+  const reached = pose.cover > 0.95 ? Math.floor(pose.flip + 0.02) : -1;
+  for (let s = 0; s < since.length; s++) {
+    if (s > reached) since[s] = null;
+    else if (since[s] === null) {
+      since[s] = instant ? now - INK_MS : now;
+      story.busyUntil = Math.max(story.busyUntil, now + INK_MS);
+    }
+  }
 }
 
 export function Book() {
@@ -121,6 +207,9 @@ export function Book() {
   const pointer = useRef(new Vector2());
   const strip = useRef<Mesh>(null);
   const ribbonMesh = useRef<Mesh>(null);
+  const foil = useRef<Mesh>(null);
+  /** Her açılımın (0–5) etkin olduğu an; null: henüz etkin değil. */
+  const since = useRef<(number | null)[]>(new Array(LEAVES).fill(null));
   const [coverNormal, coverRough, paperNormal, paperRough] = useTexture(SURFACE_MAPS);
 
   const assets = useMemo(() => {
@@ -144,11 +233,32 @@ export function Book() {
         roughnessMap: paperRough,
         roughness: 0.92,
       });
+    const blanks = {
+      left: canvasTexture(blankPage("left", width), gl),
+      right: canvasTexture(blankPage("right", width), gl),
+    };
+    /** Yaprak yüzü; çizim ilerlemesi ait olduğu açılımla birlikte `inks`e eklenir. */
+    const face = (art: PageArt, gutter: "left" | "right", spread: number, inks: Ink[]) => {
+      const layers = inkLayers(art, gutter, width);
+      const ink = canvasTexture(layers.ink, gl);
+      ink.premultiplyAlpha = true;
+      const time = new CanvasTexture(layers.time);
+      const { material, progress } = inkPaper(blanks[gutter], ink, time, paperNormal, paperRough);
+      inks.push({ progress, spread });
+      return material;
+    };
     const edge = new MeshStandardMaterial({ color: "#e9e3d5", roughness: 0.95 });
+    const stripes = canvasTexture(paperEdges(), gl);
+    stripes.wrapS = RepeatWrapping;
+    stripes.wrapT = RepeatWrapping;
+    const stack = new MeshStandardMaterial({ map: stripes, roughness: 0.95 });
     const geometry = leafGeometry();
-    const leaves = leafArt.map(([front, back]) =>
-      makeLeaf(geometry, paper(front, "left"), paper(back, "right"), edge),
-    );
+    const leaves = leafArt.map(([front, back], i) => {
+      const inks: Ink[] = [];
+      const frontFace = face(front, "left", i, inks);
+      const backFace = face(back, "right", Math.min(i + 1, LEAVES - 1), inks);
+      return makeLeaf(geometry, frontFace, backFace, edge, inks);
+    });
     const board = new MeshPhysicalMaterial({
       color: "#121946",
       normalMap: coverNormal,
@@ -170,6 +280,18 @@ export function Book() {
       sheenColor: "#8ea0ff",
       sheenRoughness: 0.55,
     });
+    // Kapaktaki logo: ışığı yansıtan altın varak; kitap dönerken parlar.
+    const gold = new MeshStandardMaterial({
+      color: "#f0c24a",
+      metalness: 1,
+      roughness: 0.26,
+      envMapIntensity: 1.8,
+      emissive: MARKER,
+      emissiveIntensity: 0.18,
+      alphaMap: new CanvasTexture(coverMask(width)),
+      transparent: true,
+      depthWrite: false,
+    });
     const glow = new MeshStandardMaterial({
       color: MARKER,
       emissive: MARKER,
@@ -186,9 +308,16 @@ export function Book() {
     return {
       leaves,
       geometry,
+      blocks: {
+        right: pageBlock(PAGE_W - 0.012, PAGE_H - 0.02, BLOCK, "right"),
+        left: pageBlock(PAGE_W - 0.012, PAGE_H - 0.02, BLOCK, "left"),
+      },
+      spineGeometry: new CylinderGeometry(SPINE_R, SPINE_R, COVER_H, 28, 1, false, Math.PI, Math.PI),
       edge,
+      stack,
       board,
       coverFace,
+      gold,
       glow,
       ribbon,
       endpaper: paper("endpaper", "right"),
@@ -200,8 +329,10 @@ export function Book() {
     () => () => {
       const materials = new Set<Material>([
         assets.edge,
+        assets.stack,
         assets.board,
         assets.coverFace,
+        assets.gold,
         assets.glow,
         assets.ribbon,
         assets.endpaper,
@@ -209,10 +340,16 @@ export function Book() {
         ...assets.leaves.flatMap(({ mesh }) => mesh.material as Material[]),
       ]);
       for (const material of materials) {
-        (material as MeshStandardMaterial).map?.dispose();
+        const maps = material as MeshStandardMaterial;
+        maps.map?.dispose();
+        maps.alphaMap?.dispose();
+        for (const extra of (material.userData.textures ?? []) as Texture[]) extra.dispose();
         material.dispose();
       }
       assets.geometry.dispose();
+      assets.blocks.right.dispose();
+      assets.blocks.left.dispose();
+      assets.spineGeometry.dispose();
     },
     [assets],
   );
@@ -236,28 +373,35 @@ export function Book() {
 
     const open = smoothstep(0, 1, pose.cover);
     cover.current.rotation.y = -Math.PI * open;
+    // Kapak açıldıkça sayfalar sırtta kıvrılır; kapalıyken düz durur.
+    const curl = smoothstep(0.5, 1, pose.cover);
+    bendBlock(assets.blocks.right, curl);
+    bendBlock(assets.blocks.left, curl);
     const leftAmount = smoothstep(0.6, 1, pose.cover);
     leftBlock.current.visible = leftAmount > 0.01;
     leftBlock.current.scale.z = Math.max(0.001, leftAmount);
-    leftBlock.current.position.z = (BLOCK * leftAmount) / 2;
     spine.current.visible = pose.cover < 0.5;
     if (strip.current) (strip.current.material as MeshStandardMaterial).emissiveIntensity = 2.4 * frame.spine;
-    if (ribbonMesh.current)
+    if (ribbonMesh.current) {
       (ribbonMesh.current.material as MeshStandardMaterial).emissiveIntensity = 0.35 * Math.min(1, frame.spine);
+      ribbonMesh.current.position.z = Z_TOP + curl * gutterProfile(0.11 / PAGE_W) + 0.004;
+    }
+    if (foil.current) (foil.current.material as MeshStandardMaterial).emissiveIntensity = 0.18 * Math.min(1, frame.spine);
 
-    assets.leaves.forEach(({ mesh, bones }, i) => {
-      const turn = pageTurn(pose.flip, i);
-      const fanAngle = -Math.PI * (0.1 + (0.8 * i) / (LEAVES - 1));
-      const angle = -Math.PI * turn + (fanAngle + Math.PI * turn) * pose.fan;
-      bones[0].rotation.y = angle;
-      // Dönen sayfa kâğıt gibi bükülür: uç kısmı kökten geride kalır.
-      const lag = Math.sin(Math.PI * turn) * 0.7 + pose.fan * 0.12;
-      for (let b = 1; b < bones.length; b++)
-        bones[b].rotation.y = (lag / SEGMENTS) * (0.4 + (1.2 * b) / SEGMENTS);
-      const across = Math.min(1, Math.max(0, -angle / Math.PI));
-      const zRight = BLOCK + (LEAVES - i) * GAP;
-      const zLeft = BLOCK * leftAmount + (i + 1) * GAP;
-      mesh.position.z = zRight + (zLeft - zRight) * across;
+    const stack: Stack = {
+      flip: pose.flip,
+      fan: pose.fan,
+      cover: pose.cover,
+      curl,
+      left: leftAmount,
+      rootZ: BLOCK + curl * gutterProfile(0),
+      still,
+    };
+    const now = performance.now();
+    markSpreads(since.current, pose, now, still || story.poster);
+    assets.leaves.forEach((leaf, i) => {
+      poseLeaf(leaf, i, stack);
+      for (const ink of leaf.inks) ink.progress.value = inkProgress(now, since.current[ink.spread], INK_MS);
     });
   });
 
@@ -267,24 +411,22 @@ export function Book() {
       <mesh position={[COVER_W / 2 - 0.004, 0, -COVER_D / 2]} material={assets.board} castShadow receiveShadow>
         <boxGeometry args={[COVER_W, COVER_H, COVER_D]} />
       </mesh>
-      {/* Sağ sayfa bloğu */}
+      {/* Sağ sayfa bloğu: üstü eğri, kenarları kâğıt destesi */}
       <mesh
-        position={[PAGE_W / 2, 0, BLOCK / 2]}
-        material={[assets.edge, assets.edge, assets.edge, assets.edge, assets.lines, assets.edge]}
+        geometry={assets.blocks.right}
+        position={[0.006, 0, 0]}
+        material={[assets.lines, assets.stack]}
         castShadow
         receiveShadow
-      >
-        <boxGeometry args={[PAGE_W - 0.012, PAGE_H - 0.02, BLOCK]} />
-      </mesh>
+      />
       {/* Sol sayfa bloğu: kapak açıldıkça belirir, üstü forza (endpaper) */}
       <mesh
         ref={leftBlock}
-        position={[-PAGE_W / 2, 0, BLOCK / 2]}
-        material={[assets.edge, assets.edge, assets.edge, assets.edge, assets.endpaper, assets.edge]}
+        geometry={assets.blocks.left}
+        position={[-0.006, 0, 0]}
+        material={[assets.endpaper, assets.stack]}
         receiveShadow
-      >
-        <boxGeometry args={[PAGE_W - 0.012, PAGE_H - 0.02, BLOCK]} />
-      </mesh>
+      />
       {assets.leaves.map(({ mesh }, i) => (
         <primitive key={i} object={mesh} />
       ))}
@@ -298,17 +440,24 @@ export function Book() {
         >
           <boxGeometry args={[COVER_W, COVER_H, COVER_D]} />
         </mesh>
+        <mesh ref={foil} position={[COVER_W / 2 - 0.004, 0, COVER_HALF + COVER_D / 2 + 0.0008]} material={assets.gold}>
+          <planeGeometry args={[COVER_W, COVER_H]} />
+        </mesh>
       </group>
-      {/* Sırt ve üzerindeki sarı şerit (kapalıyken görünür) */}
+      {/* Yuvarlak sırt ve üzerindeki sarı şerit (kapalıyken görünür) */}
       <group ref={spine}>
         <mesh
-          position={[-COVER_D / 2, 0, (Z_COVER_CLOSED + COVER_D / 2 - COVER_D) / 2]}
+          geometry={assets.spineGeometry}
+          position={[-0.004, 0, (SPINE_TOP + SPINE_BOTTOM) / 2]}
+          scale={[SPINE_BULGE, 1, 1]}
           material={assets.board}
           castShadow
+        />
+        <mesh
+          ref={strip}
+          position={[-0.004 - SPINE_R * SPINE_BULGE - 0.0015, 0, (SPINE_TOP + SPINE_BOTTOM) / 2]}
+          material={assets.glow}
         >
-          <boxGeometry args={[COVER_D, COVER_H, Z_COVER_CLOSED + COVER_D / 2 + COVER_D]} />
-        </mesh>
-        <mesh ref={strip} position={[-COVER_D - 0.001, 0, Z_TOP / 2]} material={assets.glow}>
           <boxGeometry args={[0.004, COVER_H * 0.9, 0.012]} />
         </mesh>
       </group>

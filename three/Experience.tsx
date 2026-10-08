@@ -48,7 +48,11 @@ function FrameScheduler({ onDecline }: Readonly<{ onDecline: () => void }>) {
     const loop = (now: number) => {
       id = requestAnimationFrame(loop);
       tick += 1;
-      const moving = Math.abs(story.beat - story.target) > 0.0005 || story.intro < 1 || now - story.activeAt < 1000;
+      const moving =
+        Math.abs(story.beat - story.target) > 0.0005 ||
+        story.intro < 1 ||
+        now - story.activeAt < 1000 ||
+        now < story.busyUntil;
       if (moving && !declined && last > 0) {
         samples.push(now - last);
         if (samples.length === 60) {
@@ -80,8 +84,11 @@ function precompile(gl: WebGLRenderer, scene: Scene, camera: Camera, offscreen: 
   const textures = new Set<Texture>();
   scene.traverse((object) => {
     const material = (object as Mesh).material;
-    for (const item of [material ?? []].flat())
+    for (const item of [material ?? []].flat()) {
       for (const value of Object.values(item)) if ((value as Texture | null)?.isTexture) textures.add(value as Texture);
+      // Gölgelendiriciye elle verilen dokular (ör. sayfa çizimleri) malzemenin userData'sında.
+      for (const extra of (item.userData?.textures ?? []) as Texture[]) textures.add(extra);
+    }
     if (object.visible) return;
     hidden.push(object);
     object.visible = true;

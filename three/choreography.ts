@@ -40,6 +40,11 @@ export type Pose = {
   glow: number;
   /** "Her yerde" sahnesinde telefon ve tabletin iki yanda görünmesi. */
   pair: number;
+  /** Kamera: kitaba yaklaşma (1 = yerinde), kitabın çevresinde dönme ve
+   *  yukarıdan bakma (radyan). Kitap ekranda aynı yerde kalır (camera.ts). */
+  dolly: number;
+  orbit: number;
+  tilt: number;
 };
 
 export type ScreenId = "calendar" | "board" | "homework" | "packages" | "summary";
@@ -58,14 +63,19 @@ const pose = (p: Partial<Pose>): Pose => ({
   fan: 0,
   glow: 1,
   pair: 0,
+  dolly: 1,
+  orbit: 0,
+  tilt: 0,
   ...p,
 });
 
-const chapter = (flip: number, ry: number): Pose =>
-  pose({ x: 1.72, y: -0.58, rx: -0.98, ry, rz: 0.02, scale: 0.92, flip });
+/** Özellik bölümü: kitap yerinde açık durur; kamera her bölümde kitabın
+ *  çevresinde biraz döner ve yaklaşır (sırayla sağdan, soldan). */
+const chapter = (flip: number, ry: number, orbit: number): Pose =>
+  pose({ x: 1.72, y: -0.58, rx: -0.98, ry, rz: 0.02, scale: 0.92, flip, dolly: 0.9, orbit, tilt: 0.05 });
 
-const chapterNarrow = (flip: number): Pose =>
-  pose({ y: 1.12, rx: -0.9, scale: 0.5, flip });
+const chapterNarrow = (flip: number, orbit: number): Pose =>
+  pose({ y: 1.12, rx: -0.9, scale: 0.5, flip, dolly: 0.96, orbit });
 
 /** Her sahnenin kitap pozu; sıra `scenes` ile aynı. Geniş ekranda metin
  *  soldadır, kitap sağda; ortalanmış metinli sahnelerde kitap kenara çekilir. */
@@ -73,13 +83,13 @@ export const keys: Record<Layout, Pose[]> = {
   wide: [
     // Açılış: kapalı kitap, sırtı (sarı şerit) kameraya dönük.
     pose({ x: 1.55, y: -0.1, rx: 0.3, ry: 0.5, rz: 0.1, scale: 1.05, cover: 0 }),
-    // Biz kimiz: kapak açılır.
-    pose({ x: 1.62, y: -0.2, z: 0.25, rx: -0.5, ry: -0.2, rz: 0.04 }),
-    chapter(1, -0.12),
-    chapter(2, -0.18),
-    chapter(3, -0.1),
-    chapter(4, -0.2),
-    chapter(5, -0.12),
+    // Biz kimiz: kapak açılır; kamera yaklaşıp hafifçe döner.
+    pose({ x: 1.62, y: -0.2, z: 0.25, rx: -0.5, ry: -0.2, rz: 0.04, dolly: 0.94, orbit: 0.16, tilt: 0.04 }),
+    chapter(1, -0.12, 0.14),
+    chapter(2, -0.18, -0.12),
+    chapter(3, -0.1, 0.16),
+    chapter(4, -0.2, -0.1),
+    chapter(5, -0.12, 0.12),
     // Kimler için: sağ üstte, sayfalar yelpaze; kartlar camın arkasından görür.
     pose({ x: 2.35, y: 0.85, z: -2.4, rx: -0.5, ry: -0.35, scale: 0.95, flip: 5, fan: 1, glow: 0.6 }),
     // Her yerde: kitap sağdan çıkar, sahneyi cihazlar taşır.
@@ -89,12 +99,12 @@ export const keys: Record<Layout, Pose[]> = {
   ],
   narrow: [
     pose({ x: 0.15, y: 1.05, rx: 0.3, ry: 0.5, rz: 0.1, scale: 0.6, cover: 0 }),
-    pose({ y: 1.1, rx: -0.55, ry: -0.15, scale: 0.52 }),
-    chapterNarrow(1),
-    chapterNarrow(2),
-    chapterNarrow(3),
-    chapterNarrow(4),
-    chapterNarrow(5),
+    pose({ y: 1.1, rx: -0.55, ry: -0.15, scale: 0.52, dolly: 0.97, orbit: 0.08 }),
+    chapterNarrow(1, 0.07),
+    chapterNarrow(2, -0.06),
+    chapterNarrow(3, 0.07),
+    chapterNarrow(4, -0.05),
+    chapterNarrow(5, 0.06),
     pose({ y: 1.25, z: -2, rx: -0.55, scale: 0.6, flip: 5, fan: 1, glow: 0.55 }),
     pose({ x: 2.6, y: 1.25, z: -2.6, rx: -0.6, ry: -0.6, scale: 0.6, flip: 5, fan: 0.4, glow: 0.4, pair: 1 }),
     pose({ y: 1.15, z: -1, rx: 0.3, ry: 0.5, rz: 0.08, scale: 0.48, cover: 0 }),
@@ -205,4 +215,28 @@ export function chapterIndex(progress: number, count: number) {
  *  doğrudan yeni sahneye geçer. Komşu sahneye geçiş kesme sayılmaz. */
 export function isCut(previous: number, next: number) {
   return Math.abs(next - previous) > 1.2;
+}
+
+/** Kapak açılırken üstteki üç sayfanın havalanıp geri düşmesi (k = 0 en
+ *  üstteki yaprak): kapağı biraz izler, sonra yerine oturur. Açı, radyan;
+ *  alttaki yapraklar kımıldamaz. */
+export function riffle(cover: number, k: number) {
+  if (k > 2) return 0;
+  const start = 0.22 + 0.1 * k;
+  const t = smoothstep(start, start + 0.55, cover);
+  if (t <= 0 || t >= 1) return 0;
+  return Math.sin(Math.PI * t) * (0.95 - 0.3 * k);
+}
+
+/** Bir açılım etkin olduktan sonra sayfadaki çizimlerin ilerlemesi (0–1).
+ *  `since` null ise açılım henüz etkin değil: çizimler görünmez. */
+export function inkProgress(now: number, since: number | null, duration: number) {
+  if (since === null) return 0;
+  return clamp01((now - since) / duration);
+}
+
+/** Cihaz ekranının yukarıdan aşağı satır satır belirmesi (0–1): cihaz
+ *  sayfadan yükselirken ikinci yarıda başlar, yerine oturunca tamamlanır. */
+export function screenReveal(rise: number) {
+  return smoothstep(0.35, 0.95, rise);
 }

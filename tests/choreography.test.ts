@@ -3,7 +3,10 @@ import assert from "node:assert/strict";
 import {
   beatFromScroll,
   chapterIndex,
+  inkProgress,
   isCut,
+  riffle,
+  screenReveal,
   deviceAt,
   introPose,
   keys,
@@ -128,4 +131,50 @@ test("isCut: a jump of more than one scene in one scroll step is a cut", () => {
   assert.equal(isCut(2.5, 3.5), false);
   // Sıradan tekerlek ve dokunmatik kaydırma.
   assert.equal(isCut(3.1, 3.25), false);
+});
+
+test("riffle: the top pages lift while the cover opens and settle back", () => {
+  for (const k of [0, 1, 2]) {
+    assert.equal(riffle(0, k), 0);
+    assert.equal(riffle(1, k), 0);
+    const peak = Math.max(...Array.from({ length: 101 }, (_, i) => riffle(i / 100, k)));
+    assert.ok(peak > 0.1, `leaf ${k} lifts`);
+  }
+  // Üstteki sayfa en çok kalkar; alttakiler daha az.
+  const peak = (k: number) => Math.max(...Array.from({ length: 101 }, (_, i) => riffle(i / 100, k)));
+  assert.ok(peak(0) > peak(1) && peak(1) > peak(2));
+});
+
+test("inkProgress draws from 0 to 1 after the spread becomes active", () => {
+  assert.equal(inkProgress(1000, null, 1600), 0);
+  assert.equal(inkProgress(1000, 1000, 1600), 0);
+  assert.ok(inkProgress(1800, 1000, 1600) > 0.3 && inkProgress(1800, 1000, 1600) < 0.8);
+  assert.equal(inkProgress(2700, 1000, 1600), 1);
+});
+
+test("screenReveal: the screen appears line by line in the second half of the rise", () => {
+  assert.equal(screenReveal(0), 0);
+  assert.equal(screenReveal(0.3), 0);
+  assert.equal(screenReveal(1), 1);
+  let last = 0;
+  for (let r = 0; r <= 1; r += 0.05) {
+    assert.ok(screenReveal(r) >= last);
+    last = screenReveal(r);
+  }
+});
+
+test("chapter poses move the camera; the everywhere scene keeps it still", () => {
+  const plan = keys.wide[2];
+  assert.ok(plan.dolly < 1 || plan.orbit !== 0);
+  const everywhere = keys.wide[8];
+  assert.equal(everywhere.dolly, 1);
+  assert.equal(everywhere.orbit, 0);
+});
+
+test("riffle never bends a page down and leaves the lower pages alone", () => {
+  for (let k = 0; k < 6; k++) {
+    for (let c = 0; c <= 1.0001; c += 0.01) assert.ok(riffle(c, k) >= 0, `leaf ${k} at cover ${c}`);
+    assert.equal(riffle(1, k), 0, `leaf ${k} rests when the cover is open`);
+  }
+  for (let c = 0; c <= 1; c += 0.05) assert.equal(riffle(c, 3), 0);
 });

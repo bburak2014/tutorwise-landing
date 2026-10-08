@@ -14,7 +14,8 @@ import {
   type Mesh,
   type Texture,
 } from "three";
-import { smoothstep, type DeviceKind, type ScreenId } from "./choreography.ts";
+import { LEAVES, PAGE_W, rightTop } from "./bookShape.ts";
+import { screenReveal, smoothstep, type DeviceKind, type ScreenId } from "./choreography.ts";
 import { frame } from "./Director.tsx";
 import { drawScreen } from "./screenArt.ts";
 import { story } from "./story.ts";
@@ -231,13 +232,90 @@ function showScreen(material: MeshBasicMaterial, texture: Texture) {
   material.needsUpdate = true;
 }
 
+/** Ekran malzemesi: ekran görüntüsü yukarıdan aşağı satır satır açılır,
+ *  açılan satırın kenarı parlar (uReveal 0 kapalı ekran, 1 tam ekran). */
+function screenMaterial(initial: Texture) {
+  const reveal = { value: 1 };
+  const material = new MeshBasicMaterial({ map: initial, toneMapped: false });
+  material.userData.reveal = reveal;
+  material.onBeforeCompile = (shader) => {
+    shader.uniforms.uReveal = reveal;
+    shader.fragmentShader = shader.fragmentShader
+      .replace("#include <common>", "#include <common>\nuniform float uReveal;")
+      .replace(
+        "#include <map_fragment>",
+        `#include <map_fragment>
+        float down = 1.0 - vMapUv.y;
+        float lit = step(floor(down * 30.0) / 30.0, uReveal * 1.034 - 0.034);
+        float edge = (1.0 - smoothstep(0.0, 0.045, abs(down - uReveal))) * step(0.001, uReveal) * (1.0 - step(0.999, uReveal));
+        diffuseColor.rgb = mix(vec3(0.02, 0.03, 0.08), diffuseColor.rgb, lit) + vec3(0.45, 0.55, 1.0) * edge * 0.7;`,
+      );
+  };
+  return material;
+}
+
+const setReveal = (material: MeshBasicMaterial, value: number) => {
+  (material.userData.reveal as { value: number }).value = story.reduced ? 1 : value;
+};
+
 /** Ekranın malzemesi bir kez kurulur; doku sonradan showScreen ile değişir.
  *  (Doku değişince yeni malzeme kurulursa eskisinin gölgelendiricisi
  *  bırakılır ve cihaz ilk göründüğünde yeniden derlenir, kare donar.) */
 function useScreenMaterial(initial: Texture) {
-  const [material] = useState(() => new MeshBasicMaterial({ map: initial, toneMapped: false }));
+  const [material] = useState(() => screenMaterial(initial));
   useEffect(() => () => material.dispose(), [material]);
   return material;
+}
+
+/** Cihaz yükselirken sayfanın yüzünde açılan ışık halkası: ortada sarı bir
+ *  çekirdek, dışa doğru genişleyip sönen mavi bir halka. */
+const ringFragment = /* glsl */ `
+  uniform float uT;
+  uniform float uStrength;
+  varying vec2 vUv;
+  void main() {
+    float d = length(vUv - 0.5) * 2.0;
+    float radius = mix(0.08, 0.95, uT);
+    float ring = exp(-pow((d - radius) * 16.0, 2.0)) * (1.0 - uT);
+    float core = exp(-pow(d * 3.4, 2.0)) * (1.0 - uT * 0.7);
+    vec3 color = mix(vec3(0.55, 0.63, 1.0), vec3(1.0, 0.85, 0.29), core / max(core + ring, 0.0001));
+    gl_FragColor = vec4(color, clamp((ring + core * 0.8) * uStrength, 0.0, 1.0));
+  }
+`;
+
+function PageRing({ rise }: Readonly<{ rise: { value: number } }>) {
+  const mesh = useRef<Mesh>(null);
+  const material = useMemo(
+    () =>
+      new ShaderMaterial({
+        vertexShader: sheenVertex,
+        fragmentShader: ringFragment,
+        transparent: true,
+        depthWrite: false,
+        blending: AdditiveBlending,
+        uniforms: { uT: { value: 0 }, uStrength: { value: 0 } },
+      }),
+    [],
+  );
+  useEffect(() => () => material.dispose(), [material]);
+  useFrame(() => {
+    if (!mesh.current) return;
+    const r = rise.value;
+    const visible = !story.poster && !story.reduced && r > 0.002 && r < 0.995;
+    mesh.current.visible = visible;
+    if (!visible) return;
+    // Halka, sağda en üstteki yaprağın yüzünde durur.
+    const curl = smoothstep(0.5, 1, frame.pose.cover);
+    mesh.current.position.z = rightTop(0.66 / PAGE_W, curl, LEAVES - 1 - Math.round(frame.pose.flip)) + 0.004;
+    const { uniforms } = mesh.current.material as ShaderMaterial;
+    uniforms.uT.value = smoothstep(0.05, 0.9, r);
+    uniforms.uStrength.value = smoothstep(0, 0.12, r) * (1 - smoothstep(0.85, 0.99, r)) * 1.4;
+  });
+  return (
+    <mesh ref={mesh} position={[0.66, -0.12, 0.13]} material={material} visible={false}>
+      <planeGeometry args={[1.2, 1.2]} />
+    </mesh>
+  );
 }
 
 /** Özellik bölümlerinde sayfadan yükselen cihaz (kitabın çocuğu). */
@@ -245,6 +323,8 @@ function useScreenMaterial(initial: Texture) {
 const sweep = (amount: number) => -0.4 + 2.2 * smoothstep(0.45, 1, amount);
 const chapterSheen = { tablet: { value: -1 }, phone: { value: -1 } };
 const pairSheen = { tablet: { value: -1 }, phone: { value: -1 } };
+/** Bölüm cihazının yükselişi (0–1); halka okur. */
+const chapterRise = { value: 0 };
 
 export function ChapterDevices() {
   const screens = useScreens();
@@ -256,6 +336,7 @@ export function ChapterDevices() {
   useFrame(() => {
     const device = frame.device;
     const rise = smoothstep(0, 1, device.rise);
+    chapterRise.value = device.screen === null ? 0 : rise;
     for (const [kind, group, material] of [
       ["tablet", tablet.current, tabletScreen],
       ["phone", phone.current, phoneScreen],
@@ -265,6 +346,7 @@ export function ChapterDevices() {
       group.visible = active;
       if (!active || !device.screen) continue;
       showScreen(material, screens[device.screen]);
+      setReveal(material, screenReveal(rise));
       chapterSheen[kind].value = story.reduced ? -1 : sweep(rise);
       // Sağ sayfanın ortasından yükselir; kitabın eğimini dengeleyip kameraya döner.
       group.position.set(0.66, -0.12 + rise * 0.28, 0.12 + rise * 0.78);
@@ -281,6 +363,7 @@ export function ChapterDevices() {
       <group ref={phone} visible={false}>
         <DeviceModel kind="phone" screen={phoneScreen} sheen={chapterSheen.phone} />
       </group>
+      <PageRing rise={chapterRise} />
     </>
   );
 }
@@ -301,6 +384,8 @@ export function PairDevices() {
     if (!root.current.visible) return;
     showScreen(tabletScreen, screens.calendar);
     showScreen(phoneScreen, screens.summary);
+    setReveal(tabletScreen, screenReveal(amount));
+    setReveal(phoneScreen, screenReveal(Math.max(0, amount - 0.08)));
     pairSheen.tablet.value = story.reduced ? -1 : sweep(amount);
     pairSheen.phone.value = story.reduced ? -1 : sweep(Math.max(0, amount - 0.08));
     const narrow = story.layout === "narrow";
