@@ -1,24 +1,21 @@
 "use client";
-import { MeshReflectorMaterial, Sparkles } from "@react-three/drei";
+import { Sparkles } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import {
   AdditiveBlending,
-  CanvasTexture,
   Color,
   DoubleSide,
   ShaderMaterial,
   type Group,
-  type Material,
   type Mesh,
 } from "three";
-import { smoothstep } from "./choreography.ts";
 import { frame } from "./Director.tsx";
 import { story } from "./story.ts";
 
-/* Stüdyo atmosferi: kitabın altında parlak, bulanık yansıtan bir zemin
-   (yalnız güçlü cihaz + geniş ekran; ikinci bir çizim geçişi ister), üstten
-   kitaba düşen yumuşak bir ışık huzmesi ve havada süzülen ince toz. */
+/* Stüdyo atmosferi: üstten kitaba düşen yumuşak bir ışık huzmesi ve havada
+   süzülen ince toz. İkisi de tek geçişte çizilir (yansıtan zemin her karede
+   sahneyi ikinci kez çizdiği için kaldırıldı). */
 
 const beamVertex = /* glsl */ `
   varying vec2 vUv;
@@ -88,60 +85,6 @@ function Beam() {
   );
 }
 
-/** Zeminin kenarlara doğru sönümü (alphaMap yeşil kanalı okur): ufuk çizgisi oluşmasın. */
-function radialFade() {
-  const canvas = document.createElement("canvas");
-  canvas.width = canvas.height = 256;
-  const ctx = canvas.getContext("2d");
-  if (ctx) {
-    const g = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
-    g.addColorStop(0, "#fff");
-    g.addColorStop(0.45, "#9a9a9a");
-    g.addColorStop(1, "#000");
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, 256, 256);
-  }
-  return new CanvasTexture(canvas);
-}
-
-/** Yalnız kitabın ayakta durduğu sahnelerde (açılış ve kapanış) görünür;
- *  görünmezken yansıma geçişi de çizilmez. */
-function Floor() {
-  const mesh = useRef<Mesh>(null);
-  const fade = useMemo(() => radialFade(), []);
-  useEffect(() => () => fade.dispose(), [fade]);
-  useFrame(() => {
-    if (!mesh.current) return;
-    const beat = story.beat;
-    const amount = Math.max(1 - smoothstep(0.8, 1.3, beat), smoothstep(8.6, 9.2, beat));
-    const visible = story.layout === "wide" && !story.poster && amount > 0.01;
-    mesh.current.visible = visible;
-    if (!visible) return;
-    (mesh.current.material as Material).opacity = amount;
-    mesh.current.position.x = frame.pose.x;
-  });
-  return (
-    <mesh ref={mesh} rotation-x={-Math.PI / 2} position={[1.6, -1.25, 0]}>
-      <planeGeometry args={[7, 6]} />
-      <MeshReflectorMaterial
-        transparent
-        alphaMap={fade}
-        blur={[420, 140]}
-        resolution={512}
-        mixBlur={1}
-        mixStrength={1.4}
-        mixContrast={1}
-        roughness={0.9}
-        depthScale={0.9}
-        minDepthThreshold={0.4}
-        maxDepthThreshold={1.4}
-        color="#0a0e2a"
-        metalness={0.5}
-        mirror={0.4}
-      />
-    </mesh>
-  );
-}
 
 function Dust({ count }: Readonly<{ count: number }>) {
   const group = useRef<Group>(null);
@@ -161,7 +104,6 @@ function Dust({ count }: Readonly<{ count: number }>) {
 export function Atmosphere({ tier }: Readonly<{ tier: "high" | "low" }>) {
   return (
     <>
-      {tier === "high" && <Floor />}
       <Beam />
       <Dust count={tier === "high" ? 90 : 36} />
     </>

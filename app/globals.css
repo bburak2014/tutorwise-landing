@@ -332,18 +332,6 @@ body {
   }
 }
 
-/* Lenis (yumuşak kaydırma) için gerekenler (lenis/dist/lenis.css). */
-html.lenis,
-html.lenis body {
-  height: auto;
-}
-.lenis:not(.lenis-autoToggle).lenis-stopped {
-  overflow: clip;
-}
-.lenis.lenis-smooth iframe {
-  pointer-events: none;
-}
-
 /* Kartta imleci izleyen ışık (SpotlightCard --mx/--my yazar). */
 .spotlight {
   position: relative;
@@ -366,27 +354,6 @@ html.lenis body {
 }
 .spotlight:hover::before {
   opacity: 1;
-}
-
-/* Alt bilginin dibindeki dev marka yazısı. */
-.wordmark {
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: 23.5vw;
-  line-height: 0.78;
-  letter-spacing: -0.055em;
-  text-align: center;
-  white-space: nowrap;
-  margin-bottom: -0.06em;
-  background: linear-gradient(180deg, rgb(238 240 251 / 0.14), rgb(238 240 251 / 0.02) 75%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-.wordmark div {
-  background: inherit;
-  -webkit-background-clip: text;
-  background-clip: text;
 }
 
 /* "Kitap okuma" bölümünün arkasındaki büyük, yalnız konturlu numara. */

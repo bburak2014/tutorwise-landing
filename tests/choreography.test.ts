@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   beatFromScroll,
   chapterIndex,
+  isCut,
   deviceAt,
   introPose,
   keys,
@@ -117,4 +118,14 @@ test("chapterIndex switches halfway between two chapters", () => {
 test("chapterIndex clamps outside the pinned range", () => {
   assert.equal(chapterIndex(-0.2, 5), 0);
   assert.equal(chapterIndex(1.3, 5), 4);
+});
+
+test("isCut: a jump of more than one scene in one scroll step is a cut", () => {
+  // Bağlantı ya da End tuşu: sayfa bir adımda birkaç sahne atlar.
+  assert.equal(isCut(0.5, 7.3), true);
+  assert.equal(isCut(8.3, 1.2), true);
+  // Bölüm çizgisinde komşu özelliğe geçiş: sayfa dönüşü görünsün.
+  assert.equal(isCut(2.5, 3.5), false);
+  // Sıradan tekerlek ve dokunmatik kaydırma.
+  assert.equal(isCut(3.1, 3.25), false);
 });

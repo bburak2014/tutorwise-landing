@@ -5,7 +5,6 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useRef, useState } from "react";
 import { Check } from "@/components/site/Icons.tsx";
 import { chapterIndex } from "@/three/choreography.ts";
-import { smooth } from "@/components/motion/SmoothScroll.tsx";
 import { prefersReducedMotion } from "@/three/quality.ts";
 
 gsap.registerPlugin(useGSAP, ScrollTrigger);
@@ -80,13 +79,12 @@ export function ChapterStage({ chapters, railLabel }: Readonly<{ chapters: Chapt
     { scope: wrapper },
   );
 
-  /** Çizgideki numaraya basınca o özelliğin başına kaydırır. */
+  /** Çizgideki numaraya basınca o özelliğin başına atlar. Komşu özellikte
+   *  3D sayfayı çevirir; uzaktakine kesmeyle geçer (ScrollDriver). */
   const jump = (index: number) => {
     const marker = wrapper.current?.querySelectorAll<HTMLElement>("[data-marker]")[index];
     if (!marker) return;
-    const top = marker.getBoundingClientRect().top + window.scrollY + 2;
-    if (smooth.lenis) smooth.lenis.scrollTo(top, { duration: 1.4 });
-    else window.scrollTo({ top, behavior: prefersReducedMotion() ? "auto" : "smooth" });
+    window.scrollTo({ top: marker.getBoundingClientRect().top + window.scrollY + 2, behavior: "instant" });
   };
 
   return (

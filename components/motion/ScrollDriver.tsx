@@ -1,18 +1,23 @@
 "use client";
 import gsap from "gsap";
 import { useEffect } from "react";
-import { beatFromScroll } from "@/three/choreography.ts";
+import { beatFromScroll, isCut } from "@/three/choreography.ts";
 import { layoutFor, prefersReducedMotion } from "@/three/quality.ts";
 import { story } from "@/three/story.ts";
 
 /** Kaydırmayı 3D hikâyeye bağlar: sahnelerin (data-scene) konumlarını ölçer,
- *  görünüm alanının ortasından beat'i hesaplar; GSAP ile yumuşatır. Hareket
- *  azaltma açıksa beat her sahnenin okuma anına oturur, geçiş anidir. */
+ *  görünüm alanının ortasından beat'i hesaplar; GSAP ile yumuşatır. Sayfa
+ *  bir adımda bir sahneden fazla atlarsa (bağlantı, End tuşu) 3D aradaki
+ *  sahneleri oynatmadan yeni sahneye geçer. Hareket azaltma açıksa beat her
+ *  sahnenin okuma anına oturur, geçiş anidir. */
 export function ScrollDriver() {
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    // Uçtan uca testler (scripts/e2e.mjs) 3D'nin durumunu buradan okur.
+    if (params.has("e2e")) (window as unknown as { __story: typeof story }).__story = story;
     // Poster çekimi: WebGL'siz tarayıcılar için sahnenin sabit görüntüleri
     // (scripts/capture-posters.mjs). Metin gizlenir, beat dışarıdan verilir.
-    const poster = new URLSearchParams(window.location.search).get("poster");
+    const poster = params.get("poster");
     if (poster !== null) {
       story.poster = true;
       story.reduced = true;
@@ -41,13 +46,25 @@ export function ScrollDriver() {
       story.layout = layoutFor(window.innerWidth, window.innerHeight);
     };
 
-    // Lenis kaydırmayı zaten yumuşatıyor; burada kısa bir yumuşatma yeter.
-    const smooth = gsap.quickTo(story, "beat", { duration: 0.7, ease: "power3.out" });
+    // Tekerlek adımları kesik kesik gelir; 3D'de akıcı görünsün diye kısa bir yumuşatma.
+    const smooth = gsap.quickTo(story, "beat", { duration: 0.6, ease: "power3.out" });
     const current = () => beatFromScroll(window.scrollY + window.innerHeight / 2, tops, lastBottom);
     const update = () => {
+      const previous = story.target;
       story.target = current();
-      if (reduced) story.beat = Math.floor(story.target) + 0.5;
-      else smooth(story.target);
+      story.activeAt = performance.now();
+      if (reduced) {
+        story.beat = Math.floor(story.target) + 0.5;
+      } else if (isCut(previous, story.target)) {
+        // Kesme: yumuşatma yeni noktadan başlar; kısa bir kararma geçişi örter.
+        smooth(story.target, story.target);
+        story.beat = story.target;
+        document
+          .querySelector(".stage")
+          ?.animate([{ opacity: 0.2 }, { opacity: 1 }], { duration: 480, easing: "cubic-bezier(0.2, 0.7, 0.2, 1)" });
+      } else {
+        smooth(story.target);
+      }
     };
 
     measure();
@@ -60,6 +77,7 @@ export function ScrollDriver() {
     };
     const fine = window.matchMedia("(pointer: fine)").matches;
     const onPointer = (event: PointerEvent) => {
+      story.activeAt = performance.now();
       story.pointerX = (event.clientX / window.innerWidth) * 2 - 1;
       story.pointerY = -((event.clientY / window.innerHeight) * 2 - 1);
     };

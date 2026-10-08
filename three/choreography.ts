@@ -199,3 +199,10 @@ export function spineGlow(t: number) {
 export function chapterIndex(progress: number, count: number) {
   return Math.min(count - 1, Math.max(0, Math.floor(progress * (count - 1) + 0.5)));
 }
+
+/** Kaydırmanın tek adımda bir sahneden fazla atlaması (bağlantı, End tuşu,
+ *  kaydırma çubuğu) bir kesmedir: 3D aradaki sahneleri hızla oynatmaz,
+ *  doğrudan yeni sahneye geçer. Komşu sahneye geçiş kesme sayılmaz. */
+export function isCut(previous: number, next: number) {
+  return Math.abs(next - previous) > 1.2;
+}

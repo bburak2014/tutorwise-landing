@@ -13,9 +13,24 @@ const INTERACTIONS = ["pointerdown", "touchstart", "wheel", "keydown", "scroll"]
 
 type Mode = "idle" | "on-demand";
 
+const INTRO_KEY = "tutorwise-intro";
+
+/** Açılış oturumda bir kez oynar: dil değiştirince ya da logoya basınca
+ *  sayfa yeniden yüklenir ama kitap yeniden süzülerek gelmez. */
+function firstVisitThisSession(): boolean {
+  try {
+    if (sessionStorage.getItem(INTRO_KEY)) return false;
+    sessionStorage.setItem(INTRO_KEY, "1");
+    return true;
+  } catch {
+    return true;
+  }
+}
+
 /** Sabit sahne.
  *  - Güçlü cihaz: 3D tarayıcı boşa çıkınca yüklenir; tuval belirince
  *    sinematik açılış oynar (kitap derinlikten gelir, sırt ışığı yanar).
+ *    Açılış oturumda bir kez oynar.
  *  - Dokunmatik/zayıf cihaz: sahnenin poster görüntüsü hemen görünür, 3D
  *    ilk etkileşimde yüklenir ve posterle aynı pozdan devam eder (açılış
  *    oynamaz, sıçrama olmasın). Hemen çıkan biri megabaytlarca 3D indirmez.
@@ -68,7 +83,8 @@ export function Stage() {
   }, [visible]);
 
   const onReady = () => {
-    const intro = mode === "idle" && !story.reduced && !prefersReducedMotion() && !story.poster;
+    const intro =
+      mode === "idle" && !story.reduced && !prefersReducedMotion() && !story.poster && firstVisitThisSession();
     if (intro) {
       story.intro = 0;
       gsap.to(story, { intro: 1, duration: 3.2, ease: "none", delay: 0.15 });

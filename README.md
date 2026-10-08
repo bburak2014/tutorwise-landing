@@ -25,10 +25,12 @@ Kontroller:
 ```sh
 pnpm typecheck && pnpm lint && pnpm test
 pnpm verify       # gerçek tarayıcıda: yönlendirme, 7 dil × 2 düzen, FPS, hareket azaltma, WebGL'siz
+pnpm e2e          # ziyaretçi gibi: bağlantılar, menü, bölüm çizgisi, imleç, tekerlek, açılış, 3D donması
 ```
 
-`pnpm test` statik çıktıyı da denetler; önce `pnpm build` gerekir. `pnpm verify` için
-`pnpm serve` açık olmalı.
+`pnpm test` statik çıktıyı da denetler; önce `pnpm build` gerekir. `pnpm verify` ve
+`pnpm e2e` için `pnpm serve` açık olmalı; ikisi de canlı siteye de çalıştırılabilir
+(`pnpm e2e https://tutorwise.academy`).
 
 ## Neyi nereden değiştiririm
 
@@ -41,7 +43,7 @@ pnpm verify       # gerçek tarayıcıda: yönlendirme, 7 dil × 2 düzen, FPS, 
 | Kitabın her bölümdeki pozu | `three/choreography.ts` → `keys.wide` / `keys.narrow`. |
 | Sayfa görselleri (yazısız) | `three/pageArt.ts`. |
 | Açılış, sırt ışığı, bölüm geçişi (saf fonksiyonlar) | `three/choreography.ts` → `introPose`, `spineGlow`, `chapterIndex`. |
-| Işık huzmesi, zemin yansıması, toz | `three/Atmosphere.tsx`. |
+| Işık huzmesi, toz | `three/Atmosphere.tsx`. |
 
 Dil listesi, eşleme kuralları ve bayraklar ana uygulamadan (derslik deposu,
 `packages/contracts/src/i18n`) kopyalandı; uygulamaya dil eklenirse `i18n/` de güncellenir.
@@ -66,9 +68,15 @@ yazıları "Tutorwise" ile değiştirilir.
 
 - Masaüstünde 3D tarayıcı boşa çıkınca yüklenir ve açılış oynar.
 - Dokunmatik ya da zayıf cihazlarda önce sahnenin poster görüntüsü görünür; 3D ilk etkileşimde yüklenir ve aynı pozdan devam eder.
-- Yumuşak kaydırma (Lenis) yalnız fare ve dokunmatik yüzeyde; telefonda kaydırma tarayıcıda kalır.
-- Kare hızı düşerse çözünürlük, sonra efektler kendiliğinden kapanır.
-- `prefers-reduced-motion`: açılış, yumuşak kaydırma ve eğilme yok; sahne her bölümde sabit poz.
+- Kaydırma tarayıcının kendi kaydırmasıdır (gecikme yok). Bağlantıyla uzak bir bölüme
+  atlanınca 3D aradaki sahneleri oynatmaz, kısa bir geçişle yeni sahneye geçer.
+- Açılış oturumda bir kez oynar; dil değiştirince tekrar etmez.
+- Gölgelendiriciler ve dokular sahne görünmeden hazırlanır: cihazlar ilk kez
+  göründüğünde kare donmaz.
+- Tuval en fazla 1,5× piksel yoğunluğunda çizilir; kimse kaydırmıyorken yarı hızda.
+- Kaydırırken kare hızı uzun süre düşük kalırsa çözünürlük ve efektler kendiliğinden düşer.
+- Adresi henüz olmayan bağlantılar (`#`) tıklanınca sayfayı kımıldatmaz.
+- `prefers-reduced-motion`: açılış yok; sahne her bölümde sabit poz.
 - WebGL yoksa posterler gösterilir.
 
 ## Yayın

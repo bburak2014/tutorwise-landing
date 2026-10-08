@@ -1,5 +1,4 @@
 import type { CSSProperties } from "react";
-import { Magnetic } from "@/components/motion/Magnetic.tsx";
 import { StoreBadges } from "@/components/site/StoreBadges.tsx";
 import { ArrowRight } from "@/components/site/Icons.tsx";
 import { getContent } from "@/lib/locale.ts";
@@ -33,12 +32,10 @@ export async function Hero() {
             {hero.body}
           </p>
           <div className="mt-9 flex flex-wrap gap-3" data-reveal style={{ "--i": 4 } as CSSProperties}>
-            <Magnetic>
-              <a href={links.teacherStart} className="btn btn-primary">
-                {hero.teacherCta}
-                <ArrowRight />
-              </a>
-            </Magnetic>
+            <a href={links.teacherStart} className="btn btn-primary">
+              {hero.teacherCta}
+              <ArrowRight />
+            </a>
             <a href={links.studentSignIn} className="btn btn-ghost">
               {hero.studentCta}
             </a>

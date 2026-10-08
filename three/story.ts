@@ -17,4 +17,7 @@ export const story = {
   poster: false,
   /** Sinematik açılışın ilerlemesi (0 → 1); tuval belirince GSAP sürer. */
   intro: 1,
+  /** Son kaydırma ya da imleç hareketinin zamanı (performance.now). Boşta
+   *  tuval yarı hızda çizilir (Experience → FrameScheduler). */
+  activeAt: 0,
 };

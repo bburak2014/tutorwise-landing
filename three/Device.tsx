@@ -1,6 +1,6 @@
 "use client";
 import { useFrame, useThree } from "@react-three/fiber";
-import { createContext, useContext, useEffect, useMemo, useRef, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   AdditiveBlending,
   ExtrudeGeometry,
@@ -187,13 +187,17 @@ function useScreenTextures() {
     const locale = document.documentElement.lang;
     const loader = new TextureLoader();
     for (const id of SCREENS) {
-      loader.load(`/screens/${locale}/${id}.webp`, (texture) => {
+      loader.load(`/screens/${locale}/${id}.webp`, async (texture) => {
+        // Görsel arka planda çözülür ve hemen ekran kartına yüklenir; cihaz
+        // ilk kez yükseldiğinde bu iş kareyi dondurmaz.
+        await (texture.image as HTMLImageElement).decode?.().catch(() => {});
         if (!alive) {
           texture.dispose();
           return;
         }
         texture.colorSpace = SRGBColorSpace;
         texture.anisotropy = Math.min(8, gl.capabilities.getMaxAnisotropy());
+        gl.initTexture(texture);
         const placeholder = textures[id];
         textures[id] = texture;
         placeholder.dispose();
@@ -227,8 +231,11 @@ function showScreen(material: MeshBasicMaterial, texture: Texture) {
   material.needsUpdate = true;
 }
 
+/** Ekranın malzemesi bir kez kurulur; doku sonradan showScreen ile değişir.
+ *  (Doku değişince yeni malzeme kurulursa eskisinin gölgelendiricisi
+ *  bırakılır ve cihaz ilk göründüğünde yeniden derlenir, kare donar.) */
 function useScreenMaterial(initial: Texture) {
-  const material = useMemo(() => new MeshBasicMaterial({ map: initial, toneMapped: false }), [initial]);
+  const [material] = useState(() => new MeshBasicMaterial({ map: initial, toneMapped: false }));
   useEffect(() => () => material.dispose(), [material]);
   return material;
 }
