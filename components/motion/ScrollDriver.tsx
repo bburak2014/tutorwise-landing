@@ -5,11 +5,16 @@ import { beatFromScroll, isCut } from "@/three/choreography.ts";
 import { layoutFor, prefersReducedMotion } from "@/three/quality.ts";
 import { story } from "@/three/story.ts";
 
+/** 3D'nin zarifçe izleyebileceği en yüksek kaydırma hızı (sahne/sn). */
+const RACE_SPEED = 3;
+const DIM = 0.15;
+
 /** Kaydırmayı 3D hikâyeye bağlar: sahnelerin (data-scene) konumlarını ölçer,
  *  görünüm alanının ortasından beat'i hesaplar; GSAP ile yumuşatır. Sayfa
- *  bir adımda bir sahneden fazla atlarsa (bağlantı, End tuşu) 3D aradaki
- *  sahneleri oynatmadan yeni sahneye geçer. Hareket azaltma açıksa beat her
- *  sahnenin okuma anına oturur, geçiş anidir. */
+ *  bir adımda bir sahneden fazla atlarsa (bağlantı, End tuşu) ya da 3D'nin
+ *  zarifçe izleyebileceğinden hızlı kayarsa (hızlı fırlatma) 3D yarışmaz:
+ *  kararır, kaydırmayı anında izler ve kaydırma durunca yeni yerinde belirir.
+ *  Hareket azaltma açıksa beat her sahnenin okuma anına oturur, geçiş anidir. */
 export function ScrollDriver() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -49,22 +54,41 @@ export function ScrollDriver() {
     // Tekerlek adımları kesik kesik gelir; 3D'de akıcı görünsün diye kısa bir yumuşatma.
     const smooth = gsap.quickTo(story, "beat", { duration: 0.6, ease: "power3.out" });
     const current = () => beatFromScroll(window.scrollY + window.innerHeight / 2, tops, lastBottom);
+    const stage = () => document.querySelector<HTMLElement>(".stage");
+    const fade = (keyframes: Keyframe[], options: KeyframeAnimationOptions) => {
+      const el = stage();
+      if (!el) return;
+      for (const animation of el.getAnimations()) animation.cancel();
+      el.animate(keyframes, options);
+    };
+    let racing = false;
+    let settle = 0;
+    let speed = 0;
+    let lastAt = performance.now();
+    /** 3D karanlıkta kaydırmayı anında izler; kaydırma durunca belirir. */
+    const race = () => {
+      if (!racing) fade([{ opacity: DIM }, { opacity: DIM }], { duration: 1, fill: "forwards" });
+      racing = true;
+      smooth(story.target, story.target);
+      story.beat = story.target;
+      window.clearTimeout(settle);
+      settle = window.setTimeout(() => {
+        racing = false;
+        speed = 0;
+        fade([{ opacity: DIM }, { opacity: 1 }], { duration: 480, easing: "cubic-bezier(0.2, 0.7, 0.2, 1)" });
+      }, 160);
+    };
     const update = () => {
       const previous = story.target;
       story.target = current();
-      story.activeAt = performance.now();
-      if (reduced) {
-        story.beat = Math.floor(story.target) + 0.5;
-      } else if (isCut(previous, story.target)) {
-        // Kesme: yumuşatma yeni noktadan başlar; kısa bir kararma geçişi örter.
-        smooth(story.target, story.target);
-        story.beat = story.target;
-        document
-          .querySelector(".stage")
-          ?.animate([{ opacity: 0.2 }, { opacity: 1 }], { duration: 480, easing: "cubic-bezier(0.2, 0.7, 0.2, 1)" });
-      } else {
-        smooth(story.target);
-      }
+      const now = performance.now();
+      // Sahne/sn; tek bir olay hızı abartmasın diye yumuşatılır.
+      speed = speed * 0.5 + (Math.abs(story.target - previous) / Math.max(0.001, (now - lastAt) / 1000)) * 0.5;
+      lastAt = now;
+      story.activeAt = now;
+      if (reduced) story.beat = Math.floor(story.target) + 0.5;
+      else if (racing || isCut(previous, story.target) || speed > RACE_SPEED) race();
+      else smooth(story.target);
     };
 
     measure();
@@ -87,6 +111,7 @@ export function ScrollDriver() {
     window.addEventListener("resize", onResize);
     if (fine) window.addEventListener("pointermove", onPointer, { passive: true });
     return () => {
+      window.clearTimeout(settle);
       observer.disconnect();
       window.removeEventListener("scroll", update);
       window.removeEventListener("resize", onResize);

@@ -187,6 +187,67 @@ try {
   check("chapter rail 01 → 05: lands on 05, no page riffle in between", rail.between === 0 && current === "05", { ...rail, current });
   await settle();
 
+  // 2c. Hızlı fırlatma (sayfanın dibinden başa 0,6 sn'de): 3D sayfayı
+  // zarifçe izleyemeyecek kadar hızlı kayarken görünür biçimde yarışmaz;
+  // kararır, kaydırma durunca yeni yerinde belirir.
+  await scrollTo(desk, 100000);
+  await settle();
+  const fling = await desk.eval(`(async () => {
+    const stage = document.querySelector(".stage");
+    const from = scrollY, ms = 600, frames = [];
+    let last = window.__story.beat, lastT = performance.now();
+    await new Promise((done) => {
+      const start = performance.now();
+      const step = (now) => {
+        const t = Math.min(1, (now - start) / ms);
+        scrollTo(0, from * (1 - t));
+        const beat = window.__story.beat;
+        const dt = (now - lastT) / 1000;
+        if (dt > 0) frames.push({ speed: Math.abs(beat - last) / dt, opacity: +getComputedStyle(stage).opacity });
+        last = beat;
+        lastT = now;
+        if (now - start < ms + 1200) requestAnimationFrame(step);
+        else done();
+      };
+      requestAnimationFrame(step);
+    });
+    return {
+      frames: frames.length,
+      visibleRacing: frames.filter((f) => f.speed > 3 && f.opacity > 0.5).length,
+      maxSpeed: Math.round(Math.max(...frames.map((f) => f.speed))),
+      endOpacity: +getComputedStyle(stage).opacity,
+    };
+  })()`);
+  check(
+    "fast fling to the top: the 3D never races visibly and is fully back afterwards",
+    fling.visibleRacing === 0 && fling.endOpacity > 0.99,
+    fling,
+  );
+  await settle();
+
+  // 2d. Sakin kaydırma (3 sahne, 3 sn'de): 3D kararmaz, sahneleri izler.
+  await scrollTo(desk, 0);
+  await settle();
+  const calm = await desk.eval(`(async () => {
+    const stage = document.querySelector(".stage");
+    const to = [...document.querySelectorAll('[data-scene="chapter-live"]')].find((e) => e.getClientRects().length).getBoundingClientRect().top + scrollY;
+    let lowest = 1;
+    await new Promise((done) => {
+      const start = performance.now();
+      const step = (now) => {
+        const t = Math.min(1, (now - start) / 3000);
+        scrollTo(0, to * t);
+        lowest = Math.min(lowest, +getComputedStyle(stage).opacity);
+        if (t < 1) requestAnimationFrame(step);
+        else done();
+      };
+      requestAnimationFrame(step);
+    });
+    return { lowestOpacity: lowest, beat: +window.__story.beat.toFixed(2) };
+  })()`);
+  check("calm scrolling keeps the 3D visible the whole way", calm.lowestOpacity > 0.99 && calm.beat > 2.5, calm);
+  await settle();
+
   // 3. İmleç üstüne gelince düğmeler ve kartlar yerinden oynamaz.
   const targets = [
     `document.querySelector("#top .btn-primary")`,
