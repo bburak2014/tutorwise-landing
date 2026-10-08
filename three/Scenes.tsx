@@ -6,6 +6,7 @@ import { Vector2, type Group } from "three";
 import type { Layout } from "./choreography.ts";
 import { Devices, Roles } from "./scenes/Closing.tsx";
 import { Board, Calendar, Credits, Homework, Summary } from "./scenes/Features.tsx";
+import { Hero } from "./scenes/Hero.tsx";
 import { Logo } from "./scenes/Logo.tsx";
 import { story } from "./story.ts";
 
@@ -33,6 +34,7 @@ export function Scenes() {
   return (
     <>
       <group ref={root}>
+        <Hero />
         <Logo />
         <Calendar />
         <Board />

@@ -43,7 +43,9 @@ test("beatFromScroll treats a gap between sections as part of the earlier one", 
 test("every scene has a composition, and each composition is used", () => {
   assert.equal(sceneComposition.length, scenes.length);
   for (const c of compositions) assert.ok(sceneComposition.includes(c), c);
-  assert.equal(sceneComposition[0], "logo");
+  // Açılışta logo yok: kendi sahnesi (dizüstü ve çevresindeki ders nesneleri).
+  assert.equal(sceneComposition[0], "hero");
+  assert.equal(sceneComposition[1], "logo");
   assert.equal(sceneComposition.at(-1), "logo");
 });
 
@@ -75,8 +77,11 @@ test("presence: the outgoing object dissolves first, the incoming one appears la
   }
 });
 
-test("presence keeps the logo whole between the opening and the about scene", () => {
-  for (const beat of [0.5, 0.8, 1, 1.2, 1.5]) assert.equal(presence(beat).logo, 1, `beat ${beat}`);
+test("the opening shows no logo; the logo arrives in the about scene", () => {
+  assert.equal(presence(0.5).hero, 1);
+  assert.equal(presence(0.5).logo, 0);
+  assert.equal(presence(1.5).logo, 1);
+  assert.equal(presence(1.5).hero, 0);
 });
 
 
