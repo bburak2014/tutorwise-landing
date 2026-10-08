@@ -127,7 +127,6 @@ export const en: Content = {
   footer: {
     tagline: "The workspace for private tutoring.",
     contact: "Contact",
-    contactValue: "[PLACEHOLDER: contact email]",
     privacy: "Privacy",
     terms: "Terms of use",
     rights: "All rights reserved.",

@@ -52,6 +52,12 @@ test("the root page lists every language for browsers without JavaScript", () =>
 });
 
 for (const locale of locales) {
+  test(`${locale} page shows the contact email as a mail link`, () => {
+    const html = read(`${locale}/index.html`);
+    assert.match(html, /<a[^>]*href="mailto:info@tutorwise\.academy"[^>]*>info@tutorwise\.academy<\/a>/);
+    assert.equal(content[locale].footer.contact.includes("["), false, `${locale}: contact label is a placeholder`);
+  });
+
   test(`${locale} page declares its language and title`, () => {
     const html = read(`${locale}/index.html`);
     assert.match(html, new RegExp(`<html[^>]*\\blang="${locale}"`));
