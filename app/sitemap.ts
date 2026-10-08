@@ -4,13 +4,21 @@ import { site } from "@/lib/site.ts";
 
 export const dynamic = "force-static";
 
-/** Her dil sayfası, diğer dillerdeki karşılıklarıyla birlikte. */
+/** Her dildeki sayfalar (ana sayfa, gizlilik, koşullar), diğer dillerdeki
+ *  karşılıklarıyla birlikte. */
 export default function sitemap(): MetadataRoute.Sitemap {
-  const languages = Object.fromEntries(locales.map((l) => [l, `${site.url}/${l}/`]));
-  return locales.map((locale) => ({
-    url: `${site.url}/${locale}/`,
-    changeFrequency: "monthly",
-    priority: locale === "tr" ? 1 : 0.8,
-    alternates: { languages },
-  }));
+  const pages = [
+    { path: "", priority: 1, changeFrequency: "monthly" },
+    { path: "privacy/", priority: 0.3, changeFrequency: "yearly" },
+    { path: "terms/", priority: 0.3, changeFrequency: "yearly" },
+  ] as const;
+  return pages.flatMap(({ path, priority, changeFrequency }) => {
+    const languages = Object.fromEntries(locales.map((l) => [l, `${site.url}/${l}/${path}`]));
+    return locales.map((locale) => ({
+      url: `${site.url}/${locale}/${path}`,
+      changeFrequency,
+      priority: locale === "tr" || path ? priority : priority * 0.8,
+      alternates: { languages },
+    }));
+  });
 }

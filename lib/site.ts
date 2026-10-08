@@ -18,6 +18,7 @@ export const links = {
   webApp: "#",
   appStore: "#",
   googlePlay: "#",
-  privacy: "#",
-  terms: "#",
 };
+
+/** Sitenin kendi sayfaları (dil kökünün altında). "" ana sayfadır. */
+export type SitePage = "" | "privacy/" | "terms/";

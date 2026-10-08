@@ -105,3 +105,30 @@ test("large JavaScript chunks ship with source maps", () => {
   });
   assert.deepEqual(missing, []);
 });
+
+// Gizlilik politikası ve kullanım koşulları: her dilde ayrı sayfa, alt
+// bilgiden bağlantılı, kendi başlığı, canonical adresi ve dil karşılıklarıyla.
+const legalPages = ["privacy", "terms"] as const;
+const escapeHtml = (text: string) => text.replaceAll("&", "&amp;").replaceAll("'", "&#x27;").replaceAll('"', "&quot;");
+
+for (const locale of locales) {
+  test(`${locale} footer links to the privacy policy and the terms`, () => {
+    const html = read(`${locale}/index.html`);
+    for (const page of legalPages) assert.match(html, new RegExp(`<a[^>]*href="/${locale}/${page}/"`), page);
+  });
+
+  for (const page of legalPages) {
+    test(`${locale} ${page} page is built with its own title, canonical address and language alternates`, async () => {
+      const { legal } = await import("../content/legal/index.ts");
+      const doc = legal[locale][page];
+      const html = read(`${locale}/${page}/index.html`);
+      assert.match(html, new RegExp(`<html lang="${locale}"`));
+      assert.ok(html.includes(`<h1`) && html.includes(escapeHtml(doc.title)), "h1 title");
+      assert.ok(html.includes(`<link rel="canonical" href="${site.url}/${locale}/${page}/"/>`), "canonical");
+      for (const other of locales)
+        assert.ok(html.includes(`hrefLang="${other}" href="${site.url}/${other}/${page}/"`), `hreflang ${other}`);
+      for (const section of doc.sections) assert.ok(html.includes(escapeHtml(section.title)), section.title);
+      assert.ok(html.includes(`href="mailto:${site.email}"`), "contact address");
+    });
+  }
+}
