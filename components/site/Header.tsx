@@ -1,18 +1,21 @@
 import { getContent, currentLocale } from "@/lib/locale.ts";
-import { links } from "@/lib/site.ts";
+import { links, type SitePage } from "@/lib/site.ts";
 import { HeaderFrame } from "./HeaderFrame.tsx";
 import { LanguageSwitcher } from "./LanguageSwitcher.tsx";
 import { MobileMenu } from "./MobileMenu.tsx";
 import { Logo } from "./Logo.tsx";
 
-export async function Header() {
+/** Üst menü. Ana sayfa dışındaki sayfalarda (`page`) bölüm bağlantıları ana
+ *  sayfadaki bölümlere gider; dil seçici aynı sayfanın karşılığına. */
+export async function Header({ page = "" }: Readonly<{ page?: SitePage }>) {
   const locale = await currentLocale();
   const { nav } = await getContent();
+  const home = page === "" ? "" : `/${locale}/`;
   const sections = [
-    { href: "#features", label: nav.features },
-    { href: "#audiences", label: nav.audiences },
-    { href: "#about", label: nav.about },
-    { href: "#download", label: nav.download },
+    { href: `${home}#features`, label: nav.features },
+    { href: `${home}#audiences`, label: nav.audiences },
+    { href: `${home}#about`, label: nav.about },
+    { href: `${home}#download`, label: nav.download },
   ];
   return (
     <HeaderFrame>
@@ -41,7 +44,7 @@ export async function Header() {
           </ul>
         </nav>
         <div className="ml-auto flex items-center gap-3 lg:ml-6">
-          <LanguageSwitcher locale={locale} label={nav.language} />
+          <LanguageSwitcher locale={locale} label={nav.language} page={page} />
           <a href={links.signIn} className="btn btn-ghost hidden h-10 min-h-0 px-4 text-sm sm:inline-flex">
             {nav.signIn}
           </a>

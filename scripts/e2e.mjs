@@ -274,6 +274,32 @@ try {
     await mouse(desk, "mouseMoved", 5, 5);
   }
 
+  // 1b. Kaydırınca beliren metinler (GSAP sonradan yüklenir): sayfa baştan
+  // sona gezilince hiçbir metin gizli kalmaz.
+  await scrollTo(desk, 0);
+  await settle();
+  const hidden = await desk.eval(`(async () => {
+    const step = innerHeight * 0.6;
+    for (let y = 0; y <= document.body.scrollHeight; y += step) {
+      scrollTo(0, y);
+      await new Promise((r) => setTimeout(r, 120));
+    }
+    await new Promise((r) => setTimeout(r, 1800));
+    const out = [];
+    for (const el of document.querySelectorAll("[data-reveal], [data-split]")) {
+      if (!el.getClientRects().length) continue;
+      const style = getComputedStyle(el);
+      if (+style.opacity < 0.99 || style.visibility === "hidden") out.push(el.textContent.trim().slice(0, 40));
+    }
+    for (const word of document.querySelectorAll("[data-split] div, [data-split] span")) {
+      if (+getComputedStyle(word).opacity < 0.99) out.push("word: " + word.textContent.trim().slice(0, 20));
+    }
+    return out.slice(0, 8);
+  })()`);
+  check("every text that reveals on scroll is visible after scrolling through the page", hidden.length === 0, hidden);
+  await scrollTo(desk, 0);
+  await settle();
+
   // 1. Adresi olmayan bağlantılar (#) sayfayı kımıldatmaz.
   const placeholders = await desk.eval(`[...document.querySelectorAll('a[href="#"]')].filter((a) => a.getClientRects().length > 0 && a.offsetWidth > 0).length`);
   const moves = [];

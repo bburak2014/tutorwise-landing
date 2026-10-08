@@ -1,9 +1,9 @@
 import { currentLocale, getContent } from "@/lib/locale.ts";
-import { links, site } from "@/lib/site.ts";
+import { site, type SitePage } from "@/lib/site.ts";
 import { LanguageSwitcher } from "./LanguageSwitcher.tsx";
 import { Logo } from "./Logo.tsx";
 
-export async function Footer() {
+export async function Footer({ page = "" }: Readonly<{ page?: SitePage }>) {
   const locale = await currentLocale();
   const { footer, nav } = await getContent();
   const year = new Date().getFullYear();
@@ -21,7 +21,7 @@ export async function Footer() {
           </a>
         </div>
         <div className="flex md:col-span-3 md:justify-end">
-          <LanguageSwitcher locale={locale} label={nav.language} placement="above" />
+          <LanguageSwitcher locale={locale} label={nav.language} page={page} placement="above" />
         </div>
       </div>
       <div className="shell">
@@ -31,12 +31,12 @@ export async function Footer() {
         </p>
         <ul className="flex gap-6">
           <li>
-            <a href={links.privacy} className="transition-colors hover:text-ink">
+            <a href={`/${locale}/privacy/`} className="transition-colors hover:text-ink">
               {footer.privacy}
             </a>
           </li>
           <li>
-            <a href={links.terms} className="transition-colors hover:text-ink">
+            <a href={`/${locale}/terms/`} className="transition-colors hover:text-ink">
               {footer.terms}
             </a>
           </li>

@@ -24,9 +24,11 @@ export const scenes = [
 export type Scene = (typeof scenes)[number];
 export type Layout = "wide" | "narrow";
 
-/** Sahnelerin nesneleri. Açılış, Biz kimiz ve kapanış logodur; her özellik
- *  kendi nesnesine dönüşür. */
+/** Sahnelerin nesneleri. Açılış dizüstü bilgisayar ve çevresinde dönen ders
+ *  nesneleridir; Biz kimiz ve kapanış logodur; her özellik kendi nesnesine
+ *  dönüşür. */
 export const compositions = [
+  "hero",
   "logo",
   "calendar",
   "board",
@@ -38,7 +40,7 @@ export const compositions = [
 ] as const;
 export type Composition = (typeof compositions)[number];
 export const sceneComposition: Composition[] = [
-  "logo",
+  "hero",
   "logo",
   "calendar",
   "board",

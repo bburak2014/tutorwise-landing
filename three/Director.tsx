@@ -80,10 +80,11 @@ export function Director() {
       story.jump = null;
       following(story.beat);
     }
-    // Açılış: o an görünen nesne ışık efekti olmadan büyüyerek belirir.
+    // Açılış: o an görünen nesne ışık efekti olmadan, kısa sürede belirir;
+    // asıl açılış hareketini nesnenin kendisi yapar (ör. dizüstünün kapağı).
     if (story.intro < 1) {
       const current = sceneComposition[frame.scene];
-      frame.presence[current] *= smoothstep(0, 0.7, story.intro);
+      frame.presence[current] *= smoothstep(0, 0.25, story.intro);
     }
   });
   return null;

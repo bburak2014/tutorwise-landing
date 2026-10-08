@@ -2,16 +2,18 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { localeCookie } from "@/i18n/choose.ts";
 import { localeNames, locales, type Locale } from "@/i18n/locales.ts";
-import { site } from "@/lib/site.ts";
+import { site, type SitePage } from "@/lib/site.ts";
 import { Flag } from "./Flag.tsx";
 
 /** Dil seçici. Her dil gerçek bir bağlantıdır (JavaScript olmadan da
- *  çalışır); tıklanınca seçim uygulamanın dil çerezine de yazılır. */
+ *  çalışır); tıklanınca seçim uygulamanın dil çerezine de yazılır. Aynı
+ *  sayfanın (`page`) o dildeki karşılığına gider. */
 export function LanguageSwitcher({
   locale,
   label,
+  page = "",
   placement = "below",
-}: Readonly<{ locale: Locale; label: string; placement?: "below" | "above" }>) {
+}: Readonly<{ locale: Locale; label: string; page?: SitePage; placement?: "below" | "above" }>) {
   const [open, setOpen] = useState(false);
   const listId = useId();
   const root = useRef<HTMLDivElement>(null);
@@ -63,7 +65,7 @@ export function LanguageSwitcher({
         {locales.map((item) => (
           <li key={item}>
             <a
-              href={`/${item}/`}
+              href={`/${item}/${page}`}
               hrefLang={item}
               lang={item}
               aria-current={item === locale ? "page" : undefined}
