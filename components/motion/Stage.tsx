@@ -1,5 +1,4 @@
 "use client";
-import gsap from "gsap";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { prefersReducedMotion, startingTier, supportsWebGL } from "@/three/quality.ts";
@@ -86,8 +85,14 @@ export function Stage() {
     const intro =
       mode === "idle" && !story.reduced && !prefersReducedMotion() && !story.poster && firstVisitThisSession();
     if (intro) {
+      // Açılışın saati: 3,2 sn'de 0'dan 1'e, doğrusal (GSAP'a gerek yok).
       story.intro = 0;
-      gsap.to(story, { intro: 1, duration: 3.2, ease: "none", delay: 0.15 });
+      const start = performance.now() + 150;
+      const tick = (now: number) => {
+        story.intro = Math.min(1, Math.max(0, (now - start) / 3200));
+        if (story.intro < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
     }
     setVisible(true);
   };

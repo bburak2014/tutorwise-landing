@@ -1,13 +1,9 @@
 "use client";
-import { useGSAP } from "@gsap/react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { motionReady, type Motion } from "@/components/motion/motion.ts";
 import { Check } from "@/components/site/Icons.tsx";
 import { chapterIndex } from "@/three/choreography.ts";
 import { prefersReducedMotion } from "@/three/quality.ts";
-
-gsap.registerPlugin(useGSAP, ScrollTrigger);
 
 export type ChapterText = { key: string; title: string; body: string; points: readonly string[] };
 
@@ -23,61 +19,20 @@ export function ChapterStage({ chapters, railLabel }: Readonly<{ chapters: Chapt
   const [active, setActive] = useState(0);
   const current = useRef(0);
 
-  useGSAP(
-    (_, contextSafe) => {
-      const safe = contextSafe ?? (<T,>(fn: T) => fn);
-      const reduced = prefersReducedMotion();
-      const media = gsap.matchMedia();
-      media.add("(min-width: 1024px)", () => {
-        const articles = gsap.utils.toArray<HTMLElement>("[data-chapter]", wrapper.current);
-        const lines = (i: number) => articles[i].querySelectorAll<HTMLElement>("[data-line]");
-        gsap.set(articles, { autoAlpha: (i: number) => (i === 0 ? 1 : 0) });
-
-        const show = safe((next: number) => {
-          const previous = current.current;
-          if (next === previous) return;
-          current.current = next;
-          setActive(next);
-          if (reduced) {
-            gsap.set(articles, { autoAlpha: (i: number) => (i === next ? 1 : 0) });
-            return;
-          }
-          const tl = gsap.timeline({ defaults: { overwrite: "auto" } });
-          tl.to(lines(previous), { yPercent: -105, duration: 0.45, ease: "power3.in", stagger: 0.03 })
-            .set(articles[previous], { autoAlpha: 0 })
-            .set(articles[next], { autoAlpha: 1 })
-            .fromTo(
-              lines(next),
-              { yPercent: 105 },
-              { yPercent: 0, duration: 0.95, ease: "expo.out", stagger: 0.055 },
-            );
-        });
-
-        ScrollTrigger.create({
-          trigger: wrapper.current,
-          start: "top top",
-          end: "bottom bottom",
-          onUpdate: (self) => show(chapterIndex(self.progress, articles.length)),
-        });
-        if (fill.current)
-          gsap.fromTo(
-            fill.current,
-            { scaleY: 0 },
-            {
-              scaleY: 1,
-              ease: "none",
-              scrollTrigger: { trigger: wrapper.current, start: "top top", end: "bottom bottom", scrub: true },
-            },
-          );
-        return () => {
-          gsap.set(articles, { clearProps: "all" });
-          gsap.set(articles.flatMap((_a, i) => [...lines(i)]), { clearProps: "all" });
-        };
-      });
-      return () => media.revert();
-    },
-    { scope: wrapper },
-  );
+  // GSAP ilk boyamadan sonra gelir (motion.ts); o zamana kadar ilk özellik
+  // görünür, sahne işaretleri 3D'yi zaten besler.
+  useEffect(() => {
+    let cancelled = false;
+    let revert = () => {};
+    motionReady().then((motion) => {
+      if (cancelled || !wrapper.current) return;
+      revert = pinChapters(motion, wrapper.current, fill.current, current, setActive);
+    });
+    return () => {
+      cancelled = true;
+      revert();
+    };
+  }, []);
 
   /** Çizgideki numaraya basınca o özelliğin başına atlar. Komşu özellikte
    *  3D sayfayı çevirir; uzaktakine kesmeyle geçer (ScrollDriver). */
@@ -188,4 +143,73 @@ export function ChapterStage({ chapters, railLabel }: Readonly<{ chapters: Chapt
       </div>
     </div>
   );
+}
+
+/** Geniş ekranda özellik metinlerinin geçişi ve ilerleme çizgisi (GSAP).
+ *  Kurulanları geri alan bir işlev döndürür. */
+function pinChapters(
+  { gsap, ScrollTrigger }: Motion,
+  wrapper: HTMLDivElement,
+  fill: HTMLSpanElement | null,
+  current: { current: number },
+  setActive: (index: number) => void,
+) {
+  const reduced = prefersReducedMotion();
+  const ctx = gsap.context(() => {}, wrapper);
+  // Sonradan (kaydırırken) kurulan animasyonlar da bağlama kaydolsun.
+  const safe =
+    <A extends unknown[]>(fn: (...args: A) => void) =>
+    (...args: A) =>
+      ctx.add(() => fn(...args));
+  const media = gsap.matchMedia();
+  media.add("(min-width: 1024px)", () => {
+    const articles = gsap.utils.toArray<HTMLElement>("[data-chapter]", wrapper);
+    const lines = (i: number) => articles[i].querySelectorAll<HTMLElement>("[data-line]");
+    const only = (index: number) => (i: number) => (i === index ? 1 : 0);
+    gsap.set(articles, { autoAlpha: only(0) });
+
+    const show = safe((next: number) => {
+      const previous = current.current;
+      if (next === previous) return;
+      current.current = next;
+      setActive(next);
+      if (reduced) {
+        gsap.set(articles, { autoAlpha: only(next) });
+        return;
+      }
+      const tl = gsap.timeline({ defaults: { overwrite: "auto" } });
+      tl.to(lines(previous), { yPercent: -105, duration: 0.45, ease: "power3.in", stagger: 0.03 })
+        .set(articles[previous], { autoAlpha: 0 })
+        .set(articles[next], { autoAlpha: 1 })
+        .fromTo(lines(next), { yPercent: 105 }, { yPercent: 0, duration: 0.95, ease: "expo.out", stagger: 0.055 });
+    });
+
+    ScrollTrigger.create({
+      trigger: wrapper,
+      start: "top top",
+      end: "bottom bottom",
+      onUpdate: (self) => show(chapterIndex(self.progress, articles.length)),
+    });
+    if (fill)
+      gsap.fromTo(
+        fill,
+        { scaleY: 0 },
+        {
+          scaleY: 1,
+          ease: "none",
+          scrollTrigger: { trigger: wrapper, start: "top top", end: "bottom bottom", scrub: true },
+        },
+      );
+    return () => {
+      gsap.set(articles, { clearProps: "all" });
+      gsap.set(
+        articles.flatMap((_a, i) => [...lines(i)]),
+        { clearProps: "all" },
+      );
+    };
+  });
+  return () => {
+    media.revert();
+    ctx.revert();
+  };
 }

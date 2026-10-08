@@ -1,9 +1,9 @@
 "use client";
-import gsap from "gsap";
 import { useEffect } from "react";
 import { beatFromScroll, isCut } from "@/three/choreography.ts";
 import { layoutFor, prefersReducedMotion } from "@/three/quality.ts";
 import { story } from "@/three/story.ts";
+import { motionReady } from "./motion.ts";
 
 /** 3D'nin zarifçe izleyebileceği en yüksek kaydırma hızı (sahne/sn). */
 const RACE_SPEED = 3;
@@ -53,11 +53,21 @@ export function ScrollDriver() {
       story.layout = layoutFor(window.innerWidth, window.innerHeight);
     };
 
-    // Tekerlek adımları kesik kesik gelir; 3D'de akıcı görünsün diye kısa bir yumuşatma.
-    const smooth = gsap.quickTo(story, "beat", { duration: 0.6, ease: "power3.out" });
+    // Tekerlek adımları kesik kesik gelir; 3D'de akıcı görünsün diye kısa bir
+    // yumuşatma (GSAP). GSAP ilk boyamadan sonra gelir (motion.ts); o zamana
+    // kadar 3D kaydırmayı doğrudan izler.
+    let quick: ((value: number, start?: number) => void) | null = null;
+    let alive = true;
+    motionReady().then(({ gsap }) => {
+      if (alive) quick = gsap.quickTo(story, "beat", { duration: 0.6, ease: "power3.out" });
+    });
+    const smooth = (value: number) => {
+      if (quick) quick(value);
+      else story.beat = value;
+    };
     const current = () => beatFromScroll(window.scrollY + window.innerHeight / 2, tops, lastBottom);
     const hold = (beat: number) => {
-      smooth(beat, beat);
+      quick?.(beat, beat);
       story.beat = beat;
     };
     let racing = false;
@@ -110,6 +120,7 @@ export function ScrollDriver() {
     window.addEventListener("resize", onResize);
     if (fine) window.addEventListener("pointermove", onPointer, { passive: true });
     return () => {
+      alive = false;
       window.clearTimeout(settle);
       observer.disconnect();
       window.removeEventListener("scroll", update);
