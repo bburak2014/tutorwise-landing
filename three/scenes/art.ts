@@ -1,12 +1,10 @@
 /* Nesnelerin yüzlerindeki çizimler (Canvas 2D): ders kartları, takvim
-   yaprağı, video kartı, onay rozeti, ders hakkı parası, bildirim. Yazı
+   yaprağı, video kartı, ders hakkı parası, tahta ızgarası. Yazı
    yok (dilden bağımsız); yalnız rakam ve şekil. */
 import { MARK_VIEWBOX, brand, capParts, markParts } from "@/lib/brand.ts";
 
 const NAVY = "#141c4d";
-const ROYAL = "#2338a8";
 const MARKER = "#ffd84a";
-const faint = "rgba(20,28,77,0.14)";
 const soft = "rgba(20,28,77,0.3)";
 
 type Ctx = CanvasRenderingContext2D;
@@ -85,23 +83,6 @@ export function videoCard() {
   });
 }
 
-/** Onay rozeti: mavi daire, beyaz onay işareti. */
-export function checkBadge() {
-  return canvas(256, 256, (ctx, w) => {
-    ctx.fillStyle = ROYAL;
-    ctx.fillRect(0, 0, w, w);
-    ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 26;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    ctx.beginPath();
-    ctx.moveTo(70, 132);
-    ctx.lineTo(112, 172);
-    ctx.lineTo(188, 88);
-    ctx.stroke();
-  });
-}
-
 /** Ders hakkı parası: altın zemin, kabartma halka, ortada logonun işareti. */
 export function coinFace() {
   return canvas(512, 512, (ctx, w) => {
@@ -129,20 +110,6 @@ export function coinFace() {
     ctx.fill(new Path2D(capParts.top));
     ctx.fill(new Path2D(capParts.base));
     ctx.restore();
-  });
-}
-
-/** Bildirim: beyaz hap, solda renkli nokta, iki satır. */
-export function notification(accent: string) {
-  return canvas(512, 140, (ctx, w, h) => {
-    ctx.fillStyle = "#f7f8fd";
-    ctx.fillRect(0, 0, w, h);
-    ctx.fillStyle = accent;
-    ctx.beginPath();
-    ctx.arc(66, h / 2, 26, 0, Math.PI * 2);
-    ctx.fill();
-    pill(ctx, 118, 40, 260, 20, NAVY);
-    pill(ctx, 118, 78, 180, 16, faint);
   });
 }
 

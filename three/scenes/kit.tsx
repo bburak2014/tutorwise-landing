@@ -1,6 +1,6 @@
 "use client";
 import { useFrame } from "@react-three/fiber";
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import {
   CanvasTexture,
   MeshPhysicalMaterial,
@@ -12,29 +12,21 @@ import {
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { smoothstep, type Composition } from "../choreography.ts";
 import { frame } from "../Director.tsx";
-import { dissolvable, type Dissolve } from "../dissolve.ts";
+import { applyFade, fading, type Fade } from "../fade.ts";
 
-/** Sahnedeki nesnelerin kök grupları; parçacıklar buradan örneklenir. */
-export const registry: Partial<Record<Composition, Group>> = {};
-
-/** Bir nesnenin kökü: görünürlüğü ve çözülmesi sahne durumundan (frame)
- *  gelir. `dissolve` nesnenin bütün malzemelerinin paylaştığı değer;
- *  kökün userData'sında taşınır ki her karede oradan yazılsın. */
+/** Bir nesnenin kökü: görünürlüğü sahne durumundan (frame) gelir. Geçişte
+ *  ışık efekti yok: nesne saydamlaşır, biraz küçülür ve aşağı kayar; gelen
+ *  nesne tersini yapar. `fade` kökün userData'sında taşınır. */
 export function useComposition(name: Composition) {
   const root = useRef<Group>(null);
-  useEffect(() => {
-    const group = root.current;
-    if (group) registry[name] = group;
-    return () => {
-      if (registry[name] === group) delete registry[name];
-    };
-  }, [name]);
   useFrame(() => {
     const group = root.current;
     if (!group) return;
     const present = frame.presence[name];
     group.visible = present > 0.001;
-    (group.userData.dissolve as Dissolve).value = 1 - present;
+    applyFade(group.userData.fade as Fade, present);
+    group.scale.setScalar(0.9 + 0.1 * present);
+    group.position.y = (1 - present) * -0.2;
   });
   return root;
 }
@@ -53,16 +45,16 @@ export function overshoot(t: number) {
 }
 
 /** Cam gibi parlak yüzey (kartlar, levhalar). */
-export function glassy(dissolve: Dissolve, parameters: MeshPhysicalMaterialParameters = {}) {
-  return dissolvable(
+export function glassy(fade: Fade, parameters: MeshPhysicalMaterialParameters = {}) {
+  return fading(
     new MeshPhysicalMaterial({ color: "#f4f6ff", roughness: 0.22, clearcoat: 1, clearcoatRoughness: 0.12, ...parameters }),
-    dissolve,
+    fade,
   );
 }
 
 /** Marka renginde parlak plastik. */
-export function glossy(color: string, dissolve: Dissolve, parameters: MeshPhysicalMaterialParameters = {}) {
-  return dissolvable(
+export function glossy(color: string, fade: Fade, parameters: MeshPhysicalMaterialParameters = {}) {
+  return fading(
     new MeshPhysicalMaterial({
       color,
       roughness: 0.3,
@@ -72,16 +64,16 @@ export function glossy(color: string, dissolve: Dissolve, parameters: MeshPhysic
       emissiveIntensity: 0.06,
       ...parameters,
     }),
-    dissolve,
+    fade,
   );
 }
 
 /** Tuval çizimini taşıyan yüzey (kart önü, rozet…). */
-export function printed(canvas: HTMLCanvasElement, dissolve: Dissolve, roughness = 0.4) {
+export function printed(canvas: HTMLCanvasElement, fade: Fade, roughness = 0.4) {
   const map = new CanvasTexture(canvas);
   map.colorSpace = SRGBColorSpace;
   map.anisotropy = 8;
-  return dissolvable(new MeshStandardMaterial({ map, roughness, metalness: 0 }), dissolve);
+  return fading(new MeshStandardMaterial({ map, roughness, metalness: 0 }), fade);
 }
 
 const boxes = new Map<string, RoundedBoxGeometry>();

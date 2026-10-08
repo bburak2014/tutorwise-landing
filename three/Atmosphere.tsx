@@ -1,5 +1,4 @@
 "use client";
-import { Sparkles } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import {
@@ -7,16 +6,15 @@ import {
   Color,
   DoubleSide,
   ShaderMaterial,
-  type Group,
   type Mesh,
 } from "three";
 import { frame } from "./Director.tsx";
 import { STAGE } from "./Scenes.tsx";
 import { story } from "./story.ts";
 
-/* Stüdyo atmosferi: üstten kitaba düşen yumuşak bir ışık huzmesi ve havada
-   süzülen ince toz. İkisi de tek geçişte çizilir (yansıtan zemin her karede
-   sahneyi ikinci kez çizdiği için kaldırıldı). */
+/* Stüdyo atmosferi: üstten sahneye düşen yumuşak, sabit bir ışık huzmesi.
+   Havada süzülen parçacık yok; tek geçişte çizilir (yansıtan zemin her
+   karede sahneyi ikinci kez çizdiği için kaldırıldı). */
 
 const beamVertex = /* glsl */ `
   varying vec2 vUv;
@@ -87,27 +85,6 @@ function Beam() {
   );
 }
 
-
-function Dust({ count }: Readonly<{ count: number }>) {
-  const group = useRef<Group>(null);
-  useFrame(() => {
-    if (!group.current) return;
-    const narrow = story.layout === "narrow";
-    group.current.position.set(STAGE[story.layout].x * 0.6, narrow ? 1.2 : 0.2, 0);
-  });
-  return (
-    <group ref={group}>
-      <Sparkles count={count} scale={[7, 4.5, 4]} size={1.6} speed={0.22} opacity={0.45} noise={0.6} color="#c9d2ff" />
-      <Sparkles count={Math.round(count / 6)} scale={[5, 3.5, 3]} size={2.4} speed={0.18} opacity={0.6} color="#ffd84a" />
-    </group>
-  );
-}
-
-export function Atmosphere({ tier }: Readonly<{ tier: "high" | "low" }>) {
-  return (
-    <>
-      <Beam />
-      <Dust count={tier === "high" ? 90 : 36} />
-    </>
-  );
+export function Atmosphere() {
+  return <Beam />;
 }

@@ -83,9 +83,9 @@ export function stageAt(beat: number) {
   return { from, to: from + 1, t: smoothstep(0.2, 0.8, u - from) };
 }
 
-/** Nesnelerin görünürlüğü (0–1). Geçişte çıkan nesne ilk %40'ta çözülür,
- *  gelen son %40'ta belirir; arada parçacıklar uçar (morphAt). Aynı nesne
- *  iki sahnede de varsa (açılış → Biz kimiz: logo) hiç çözülmez. */
+/** Nesnelerin görünürlüğü (0–1). Geçişte çıkan nesne ilk %40'ta solar,
+ *  gelen son %40'ta belirir. Aynı nesne iki sahnede de varsa (açılış → Biz
+ *  kimiz) hiç solmaz. */
 export function presence(beat: number): Record<Composition, number> {
   const { from, to, t } = stageAt(beat);
   const out = Object.fromEntries(compositions.map((c) => [c, 0])) as Record<Composition, number>;
@@ -100,13 +100,24 @@ export function presence(beat: number): Record<Composition, number> {
   return out;
 }
 
-/** İki farklı nesne arasındaki parçacık geçişi; geçiş yoksa null. */
-export function morphAt(beat: number): { from: Composition; to: Composition; t: number } | null {
-  const { from, to, t } = stageAt(beat);
-  const a = sceneComposition[from];
-  const b = sceneComposition[to];
-  if (a === b || t <= 0 || t >= 1) return null;
-  return { from: a, to: b, t };
+/** Beat'in sahnesi (okuma anına en yakın sahne). */
+export function sceneOf(beat: number) {
+  return Math.min(scenes.length - 1, Math.max(0, Math.round(beat - 0.5)));
+}
+
+/** Doğrudan geçiş (bağlantı, End tuşu, hızlı kaydırma): aradaki sahnelerin
+ *  nesneleri hiç görünmez; eski nesne solar, yenisi belirir. k: 0–1. */
+export function jumpPresence(fromBeat: number, toBeat: number, k: number): Record<Composition, number> {
+  const out = Object.fromEntries(compositions.map((c) => [c, 0])) as Record<Composition, number>;
+  const a = sceneComposition[sceneOf(fromBeat)];
+  const b = sceneComposition[sceneOf(toBeat)];
+  if (a === b) {
+    out[a] = 1;
+    return out;
+  }
+  out[a] = 1 - smoothstep(0, 0.5, k);
+  out[b] = smoothstep(0.45, 1, k);
+  return out;
 }
 
 /** Sahnenin oturma oranı: okuma anında 1, iki sahnenin ortasına doğru 0.

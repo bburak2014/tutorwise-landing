@@ -9,8 +9,9 @@ import {
   focusAt,
   inkProgress,
   isCut,
+  jumpPresence,
+  sceneOf,
   logoOpen,
-  morphAt,
   presence,
   sceneComposition,
   scenes,
@@ -78,12 +79,6 @@ test("presence keeps the logo whole between the opening and the about scene", ()
   for (const beat of [0.5, 0.8, 1, 1.2, 1.5]) assert.equal(presence(beat).logo, 1, `beat ${beat}`);
 });
 
-test("morphAt runs particles only between two different objects", () => {
-  assert.equal(morphAt(1), null, "logo → logo has no particles");
-  assert.equal(morphAt(2.5), null, "nothing moves at a reading point");
-  const m = morphAt(3);
-  assert.ok(m && m.from === "calendar" && m.to === "board" && near(m.t, 0.5));
-});
 
 test("focusAt is 1 at a scene's reading point and 0 halfway to the next", () => {
   assert.equal(focusAt(4.5, 4), 1);
@@ -142,4 +137,24 @@ test("screenReveal: the screen appears line by line in the second half of the ri
     assert.ok(screenReveal(r) >= last);
     last = screenReveal(r);
   }
+});
+
+test("sceneOf rounds a beat to its scene and clamps", () => {
+  assert.equal(sceneOf(2.5), 2);
+  assert.equal(sceneOf(2.95), 2);
+  assert.equal(sceneOf(3.1), 3);
+  assert.equal(sceneOf(-1), 0);
+  assert.equal(sceneOf(99), scenes.length - 1);
+});
+
+test("jumpPresence goes straight from the old object to the new one", () => {
+  // Plan (takvim) → Kimler için (roller): aradaki tahta, ödev, paralar, grafik hiç görünmez.
+  for (let k = 0; k <= 1.0001; k += 0.05) {
+    const p = jumpPresence(2.5, 7.4, k);
+    const shown = compositions.filter((c) => p[c] > 0);
+    assert.ok(shown.every((c) => c === "calendar" || c === "roles"), `k=${k}: ${shown}`);
+  }
+  assert.equal(jumpPresence(2.5, 7.4, 0).calendar, 1);
+  assert.equal(jumpPresence(2.5, 7.4, 1).roles, 1);
+  assert.equal(jumpPresence(2.5, 7.4, 1).calendar, 0);
 });

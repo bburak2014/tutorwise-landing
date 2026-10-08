@@ -5,7 +5,7 @@ import { ExtrudeGeometry, type Group, type Mesh } from "three";
 import { SVGLoader } from "three/examples/jsm/loaders/SVGLoader.js";
 import { MARK_CENTER, brand, capParts, markParts } from "@/lib/brand.ts";
 import { frame } from "../Director.tsx";
-import type { Dissolve } from "../dissolve.ts";
+import type { Fade } from "../fade.ts";
 import { story } from "../story.ts";
 import { glossy, useComposition } from "./kit.tsx";
 
@@ -77,16 +77,16 @@ export function extrudePath(d: string, depth: number, z: number) {
   return geometry;
 }
 
-export function logoMaterials(dissolve: Dissolve) {
+export function logoMaterials(fade: Fade) {
   return {
-    ink: glossy("#eef2ff", dissolve, { emissiveIntensity: 0.02, roughness: 0.34 }),
-    orange: glossy(brand.orange, dissolve),
-    sky: glossy(brand.sky, dissolve),
-    royal: glossy("#0b52bf", dissolve, { emissiveIntensity: 0.1 }),
+    ink: glossy("#eef2ff", fade, { emissiveIntensity: 0.02, roughness: 0.34 }),
+    orange: glossy(brand.orange, fade),
+    sky: glossy(brand.sky, fade),
+    royal: glossy("#0b52bf", fade, { emissiveIntensity: 0.1 }),
   };
 }
 
-const dissolve: Dissolve = { value: 1 };
+const fade: Fade = { value: 1 };
 const ease = (t: number) => 1 - Math.pow(1 - t, 3);
 
 /** Kepin havaya atılması: kapanış sahnesi oturduktan sonra bir kez. */
@@ -97,7 +97,7 @@ export function Logo() {
   const pivot = useRef<Group>(null);
   const meshes = useRef<(Mesh | null)[]>([]);
   const geometries = useMemo(() => logoParts.map((part) => extrudePath(part.d, part.depth, part.z)), []);
-  const materials = useMemo(() => logoMaterials(dissolve), []);
+  const materials = useMemo(() => logoMaterials(fade), []);
   useEffect(
     () => () => {
       for (const geometry of geometries) geometry.dispose();
@@ -147,7 +147,7 @@ export function Logo() {
   });
 
   return (
-    <group ref={root} userData={{ dissolve }}>
+    <group ref={root} userData={{ fade }}>
       <group ref={pivot}>
         {logoParts.map((part, i) => (
           <mesh

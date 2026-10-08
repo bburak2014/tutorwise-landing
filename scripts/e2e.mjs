@@ -187,40 +187,42 @@ try {
   check("chapter rail 01 → 05: lands on 05, no page riffle in between", rail.between === 0 && current === "05", { ...rail, current });
   await settle();
 
-  // 2c. Hızlı fırlatma (sayfanın dibinden başa 0,6 sn'de): 3D sayfayı
-  // zarifçe izleyemeyecek kadar hızlı kayarken görünür biçimde yarışmaz;
-  // kararır, kaydırma durunca yeni yerinde belirir.
+  // 2c. Hızlı fırlatma (sayfanın dibinden başa 0,6 sn'de): 3D yarışmaz ve
+  // hiç kararmaz; kaydırma sürerken olduğu sahnede aydınlık bekler, durunca
+  // aradaki sahneleri oynatmadan yeni yerine geçer.
   await scrollTo(desk, 100000);
   await settle();
   const fling = await desk.eval(`(async () => {
     const stage = document.querySelector(".stage");
-    const from = scrollY, ms = 600, frames = [];
-    let last = window.__story.beat, lastT = performance.now();
+    const from = scrollY, ms = 600, beats = [];
+    const start = window.__story.beat;
+    let lowest = 1;
     await new Promise((done) => {
-      const start = performance.now();
+      const t0 = performance.now();
       const step = (now) => {
-        const t = Math.min(1, (now - start) / ms);
+        const t = Math.min(1, (now - t0) / ms);
         scrollTo(0, from * (1 - t));
-        const beat = window.__story.beat;
-        const dt = (now - lastT) / 1000;
-        if (dt > 0) frames.push({ speed: Math.abs(beat - last) / dt, opacity: +getComputedStyle(stage).opacity });
-        last = beat;
-        lastT = now;
-        if (now - start < ms + 1200) requestAnimationFrame(step);
+        beats.push(window.__story.beat);
+        lowest = Math.min(lowest, +getComputedStyle(stage).opacity);
+        if (now - t0 < ms + 1400) requestAnimationFrame(step);
         else done();
       };
       requestAnimationFrame(step);
     });
+    const end = window.__story.target;
     return {
-      frames: frames.length,
-      visibleRacing: frames.filter((f) => f.speed > 3 && f.opacity > 0.5).length,
-      maxSpeed: Math.round(Math.max(...frames.map((f) => f.speed))),
-      endOpacity: +getComputedStyle(stage).opacity,
+      frames: beats.length,
+      start: +start.toFixed(2),
+      end: +end.toFixed(2),
+      // Baştaki ve sondaki sahnenin dışında, aradaki sahnelerden geçen kareler.
+      between: beats.filter((b) => b > Math.min(start, end) + 1 && b < Math.max(start, end) - 1).length,
+      lowestOpacity: lowest,
+      landed: Math.abs(window.__story.beat - end) < 0.01 && window.__story.jump === null,
     };
   })()`);
   check(
-    "fast fling to the top: the 3D never races visibly and is fully back afterwards",
-    fling.visibleRacing === 0 && fling.endOpacity > 0.99,
+    "fast fling to the top: the 3D never dims, never plays the scenes in between, and lands on the top scene",
+    fling.lowestOpacity > 0.99 && fling.between === 0 && fling.landed,
     fling,
   );
   await settle();
@@ -309,6 +311,14 @@ try {
   await lang.goto(`${origin}/tr/`, { settle: 1500 });
   await click(lang, `document.querySelector("header [aria-haspopup], header button[aria-expanded]")`);
   await wait(300);
+  // Açılan liste 3D'nin üstünde okunur: arka planı tam opak.
+  const list = await lang.eval(`(() => {
+    const ul = document.getElementById(document.querySelector("header button[aria-expanded]").getAttribute("aria-controls"));
+    const bg = getComputedStyle(ul).backgroundColor;
+    const parts = bg.match(/[\\d.]+/g).map(Number);
+    return { bg, alpha: parts.length > 3 ? parts[3] : 1 };
+  })()`);
+  check("language list has a solid background (not see-through over the 3D)", list.alpha === 1, list);
   await click(lang, `document.querySelector('header a[hreflang="de"]')`);
   await wait(2500);
   const switched = await lang.eval(`({ path: location.pathname, lang: document.documentElement.lang })`);

@@ -19,10 +19,10 @@ import { brand } from "@/lib/brand.ts";
 import { inkProgress, screenReveal, smoothstep } from "../choreography.ts";
 import { Device, type DeviceState } from "../Device.tsx";
 import { frame } from "../Director.tsx";
-import { dissolvable, type Dissolve } from "../dissolve.ts";
+import { fading, type Fade } from "../fade.ts";
 import { drawPage, type PageArt } from "../pageArt.ts";
 import { story } from "../story.ts";
-import { checkBadge, coinFace, dateTile, dotGrid, lessonCard, notification, videoCard } from "./art.ts";
+import { coinFace, dateTile, dotGrid, lessonCard, videoCard } from "./art.ts";
 import { BOARD_SIZE, boardLayers, penAt } from "./boardArt.ts";
 import { glassy, glossy, overshoot, printed, roundedBox, stagger, useComposition } from "./kit.tsx";
 
@@ -43,7 +43,7 @@ function useDispose(materials: Material[]) {
 
 // ── Ders planı ve takvim: tabletten fırlayan ders kartları, takvim yaprağı ──
 
-const calendar = { dissolve: { value: 1 } as Dissolve, device: { reveal: 0 } as DeviceState };
+const calendar = { fade: { value: 1 } as Fade, device: { reveal: 0 } as DeviceState };
 const CARD_AT: Vec[] = [
   [-0.86, 0.56, 0.62],
   [-1.08, 0.12, 0.86],
@@ -55,12 +55,12 @@ export function Calendar() {
   const cards = useRef<(Mesh | null)[]>([]);
   const tile = useRef<Group>(null);
   const materials = useMemo(() => {
-    const side = glassy(calendar.dissolve);
+    const side = glassy(calendar.fade);
     return {
       side,
-      cards: [ROYAL, brand.orange, brand.sky].map((c) => faced(printed(lessonCard(c), calendar.dissolve), side)),
-      tile: faced(printed(dateTile(18), calendar.dissolve), side),
-      ring: glossy("#c9cfe6", calendar.dissolve, { metalness: 0.9, roughness: 0.25 }),
+      cards: [ROYAL, brand.orange, brand.sky].map((c) => faced(printed(lessonCard(c), calendar.fade), side)),
+      tile: faced(printed(dateTile(18), calendar.fade), side),
+      ring: glossy("#c9cfe6", calendar.fade, { metalness: 0.9, roughness: 0.25 }),
     };
   }, []);
   useDispose(useMemo(() => [materials.side, materials.ring, ...materials.cards.map((m) => m[4]), materials.tile[4]], [materials]));
@@ -85,9 +85,9 @@ export function Calendar() {
   });
 
   return (
-    <group ref={root} userData={{ dissolve: calendar.dissolve }}>
+    <group ref={root} userData={{ fade: calendar.fade }}>
       <group position={[0.15, 0.05, 0]} rotation={[-0.08, -0.38, 0.02]} scale={1.25}>
-        <Device kind="tablet" screen="calendar" dissolve={calendar.dissolve} state={calendar.device} />
+        <Device kind="tablet" screen="calendar" fade={calendar.fade} state={calendar.device} />
       </group>
       {CARD_AT.map((_, i) => (
         <mesh
@@ -115,7 +115,7 @@ export function Calendar() {
 // ── Canlı ders ve ortak tahta: cam tahtada kendiliğinden çizilen geometri ──
 
 const board = {
-  dissolve: { value: 1 } as Dissolve,
+  fade: { value: 1 } as Fade,
   device: { reveal: 0 } as DeviceState,
   progress: { value: 0 },
   since: null as number | null,
@@ -123,7 +123,7 @@ const board = {
 const DRAW_MS = 3200;
 const PANE = { w: 1.6, h: (1.6 * BOARD_SIZE.height) / BOARD_SIZE.width };
 
-function inkMaterial(dissolve: Dissolve, progress: { value: number }) {
+function inkMaterial(fade: Fade, progress: { value: number }) {
   const layers = boardLayers();
   const map = new CanvasTexture(layers.ink);
   map.colorSpace = SRGBColorSpace;
@@ -142,7 +142,7 @@ function inkMaterial(dissolve: Dissolve, progress: { value: number }) {
         diffuseColor.a *= smoothstep(inkAt, inkAt + 0.012, uProgress * 1.012);`,
       );
   };
-  return dissolvable(material, dissolve);
+  return fading(material, fade);
 }
 
 export function Board() {
@@ -151,12 +151,12 @@ export function Board() {
   const materials = useMemo(() => {
     const grid = new CanvasTexture(dotGrid());
     return {
-      pane: glassy(board.dissolve, { color: "#9fb2ff", transparent: true, opacity: 0.07, roughness: 0.04, depthWrite: false }),
-      grid: dissolvable(new MeshBasicMaterial({ map: grid, transparent: true, depthWrite: false }), board.dissolve),
-      ink: inkMaterial(board.dissolve, board.progress),
-      body: glossy(ROYAL, board.dissolve),
-      grip: glossy(brand.orange, board.dissolve),
-      tip: glossy("#d7dbea", board.dissolve, { metalness: 0.9, roughness: 0.2 }),
+      pane: glassy(board.fade, { color: "#9fb2ff", transparent: true, opacity: 0.07, roughness: 0.04, depthWrite: false }),
+      grid: fading(new MeshBasicMaterial({ map: grid, transparent: true, depthWrite: false }), board.fade),
+      ink: inkMaterial(board.fade, board.progress),
+      body: glossy(ROYAL, board.fade),
+      grip: glossy(brand.orange, board.fade),
+      tip: glossy("#d7dbea", board.fade, { metalness: 0.9, roughness: 0.2 }),
     };
   }, []);
   useDispose(useMemo(() => Object.values(materials), [materials]));
@@ -188,9 +188,9 @@ export function Board() {
   });
 
   return (
-    <group ref={root} userData={{ dissolve: board.dissolve }}>
+    <group ref={root} userData={{ fade: board.fade }}>
       <group position={[0.62, 0.18, -0.45]} rotation={[-0.06, -0.36, 0]} scale={1.1}>
-        <Device kind="tablet" screen="board" dissolve={board.dissolve} state={board.device} />
+        <Device kind="tablet" screen="board" fade={board.fade} state={board.device} />
       </group>
       <group position={[-0.42, -0.12, 0.45]} rotation={[0, 0.3, 0]}>
         <mesh geometry={roundedBox(PANE.w + 0.03, PANE.h + 0.03, 0.014, 0.03)} material={materials.pane} userData={{ noSample: true }} />
@@ -217,39 +217,32 @@ export function Board() {
 
 // ── Ödev, PDF ve video: telefonun arkasında yelpazelenen sayfalar, video, onaylar ──
 
-const homework = { dissolve: { value: 1 } as Dissolve, device: { reveal: 0 } as DeviceState };
+const homework = { fade: { value: 1 } as Fade, device: { reveal: 0 } as DeviceState };
 const SHEETS: { art: PageArt; at: Vec; rot: Vec }[] = [
   { art: "assignment", at: [-0.82, 0.14, -0.22], rot: [0, 0.22, 0.16] },
   { art: "pdf", at: [-0.38, 0.22, -0.4], rot: [0, 0.08, 0.05] },
   { art: "checklist", at: [0.55, 0.12, -0.32], rot: [0, -0.22, -0.13] },
-];
-const BADGES: Vec[] = [
-  [-0.9, -0.42, 0.6],
-  [-0.62, -0.66, 0.72],
-  [-0.32, -0.52, 0.82],
 ];
 
 export function Homework() {
   const root = useComposition("homework");
   const sheets = useRef<(Mesh | null)[]>([]);
   const video = useRef<Mesh>(null);
-  const badges = useRef<(Mesh | null)[]>([]);
   const materials = useMemo(() => {
-    const side = glassy(homework.dissolve);
-    const sheetSide = glassy(homework.dissolve, { color: "#e9e3d5", clearcoat: 0, roughness: 0.9 });
+    const side = glassy(homework.fade);
+    const sheetSide = glassy(homework.fade, { color: "#e9e3d5", clearcoat: 0, roughness: 0.9 });
     return {
       side,
       sheetSide,
       sheets: SHEETS.map(({ art }) =>
-        faced(printed(drawPage(art, "left", 448), homework.dissolve, 0.85), sheetSide),
+        faced(printed(drawPage(art, "left", 448), homework.fade, 0.85), sheetSide),
       ),
-      video: faced(printed(videoCard(), homework.dissolve, 0.3), glossy("#141c4d", homework.dissolve)),
-      badge: faced(printed(checkBadge(), homework.dissolve, 0.3), glossy(ROYAL, homework.dissolve)),
+      video: faced(printed(videoCard(), homework.fade, 0.3), glossy("#141c4d", homework.fade)),
     };
   }, []);
   useDispose(
     useMemo(
-      () => [materials.side, materials.sheetSide, ...materials.sheets.map((m) => m[4]), materials.video[4], materials.video[0], materials.badge[4], materials.badge[0]],
+      () => [materials.side, materials.sheetSide, ...materials.sheets.map((m) => m[4]), materials.video[4], materials.video[0]],
       [materials],
     ),
   );
@@ -270,15 +263,10 @@ export function Homework() {
       video.current.position.set(...lerp3([0.1, -0.1, 0.1], [0.66, -0.46, 0.56], k));
       video.current.scale.setScalar(0.3 + 0.7 * Math.min(1, k));
     }
-    badges.current.forEach((badge, i) => {
-      if (!badge) return;
-      const k = overshoot(stagger(f, 2 + i, 6));
-      badge.scale.setScalar(Math.max(0.001, k));
-    });
   });
 
   return (
-    <group ref={root} userData={{ dissolve: homework.dissolve }}>
+    <group ref={root} userData={{ fade: homework.fade }}>
       {SHEETS.map(({ art }, i) => (
         <mesh
           key={art}
@@ -290,28 +278,16 @@ export function Homework() {
         />
       ))}
       <group position={[0.06, 0, 0.25]} rotation={[0, -0.25, 0.02]} scale={1.45}>
-        <Device kind="phone" screen="homework" dissolve={homework.dissolve} state={homework.device} />
+        <Device kind="phone" screen="homework" fade={homework.fade} state={homework.device} />
       </group>
       <mesh ref={video} rotation={[0, -0.34, 0]} geometry={roundedBox(0.84, 0.47, 0.03, 0.035)} material={materials.video} />
-      {BADGES.map((at, i) => (
-        <mesh
-          key={i}
-          ref={(mesh) => {
-            badges.current[i] = mesh;
-          }}
-          position={at}
-          rotation={[0, 0.2, 0]}
-          geometry={roundedBox(0.2, 0.2, 0.035, 0.1)}
-          material={materials.badge}
-        />
-      ))}
     </group>
   );
 }
 
 // ── Paketler ve tahsilat: üst üste düşen ders hakkı paraları, dolan halka ──
 
-const credits = { dissolve: { value: 1 } as Dissolve, device: { reveal: 0 } as DeviceState };
+const credits = { fade: { value: 1 } as Fade, device: { reveal: 0 } as DeviceState };
 const COINS = 6;
 const RING = { tubular: 128, radial: 12 };
 
@@ -330,11 +306,11 @@ export function Credits() {
   const extra = useRef<Mesh>(null);
   const materials = useMemo(
     () => ({
-      gold: glossy("#e9a62c", credits.dissolve, { metalness: 0.85, roughness: 0.3, emissiveIntensity: 0.04 }),
-      face: printed(coinFace(), credits.dissolve, 0.35),
-      track: glassy(credits.dissolve, { color: "#2a3570", roughness: 0.5, clearcoat: 0.4 }),
-      royal: glossy(ROYAL, credits.dissolve, { emissiveIntensity: 0.25 }),
-      orange: glossy(brand.orange, credits.dissolve, { emissiveIntensity: 0.25 }),
+      gold: glossy("#e9a62c", credits.fade, { metalness: 0.85, roughness: 0.3, emissiveIntensity: 0.04 }),
+      face: printed(coinFace(), credits.fade, 0.35),
+      track: glassy(credits.fade, { color: "#2a3570", roughness: 0.5, clearcoat: 0.4 }),
+      royal: glossy(ROYAL, credits.fade, { emissiveIntensity: 0.25 }),
+      orange: glossy(brand.orange, credits.fade, { emissiveIntensity: 0.25 }),
     }),
     [],
   );
@@ -368,9 +344,9 @@ export function Credits() {
   });
 
   return (
-    <group ref={root} userData={{ dissolve: credits.dissolve }}>
+    <group ref={root} userData={{ fade: credits.fade }}>
       <group position={[-0.5, 0.18, -0.3]} rotation={[-0.05, -0.4, 0]} scale={1.1}>
-        <Device kind="tablet" screen="packages" dissolve={credits.dissolve} state={credits.device} />
+        <Device kind="tablet" screen="packages" fade={credits.fade} state={credits.device} />
       </group>
       {Array.from({ length: COINS }, (_, i) => (
         <mesh
@@ -393,24 +369,21 @@ export function Credits() {
 
 // ── Veli ve haftalık özet: yükselen grafik, bildirim baloncukları ──
 
-const summary = { dissolve: { value: 1 } as Dissolve, device: { reveal: 0 } as DeviceState };
+const summary = { fade: { value: 1 } as Fade, device: { reveal: 0 } as DeviceState };
 const BARS = [0.45, 0.7, 0.35, 0.9, 0.6, 0.78, 0.5];
 
 export function Summary() {
   const root = useComposition("summary");
   const bars = useRef<(Mesh | null)[]>([]);
-  const bubbles = useRef<(Mesh | null)[]>([]);
-  const materials = useMemo(() => {
-    const side = glassy(summary.dissolve);
-    return {
-      side,
-      base: glassy(summary.dissolve, { transparent: true, opacity: 0.5 }),
-      bar: glossy(ROYAL, summary.dissolve),
-      peak: glossy(brand.orange, summary.dissolve),
-      bubbles: [ROYAL, brand.orange, brand.sky].map((c) => faced(printed(notification(c), summary.dissolve), side)),
-    };
-  }, []);
-  useDispose(useMemo(() => [materials.side, materials.base, materials.bar, materials.peak, ...materials.bubbles.map((m) => m[4])], [materials]));
+  const materials = useMemo(
+    () => ({
+      base: glassy(summary.fade, { transparent: true, opacity: 0.5 }),
+      bar: glossy(ROYAL, summary.fade),
+      peak: glossy(brand.orange, summary.fade),
+    }),
+    [],
+  );
+  useDispose(useMemo(() => Object.values(materials), [materials]));
 
   useFrame(() => {
     if (!root.current?.visible) return;
@@ -422,18 +395,12 @@ export function Summary() {
       bar.scale.y = h;
       bar.position.y = h / 2 + 0.02;
     });
-    bubbles.current.forEach((bubble, i) => {
-      if (!bubble) return;
-      const k = overshoot(stagger(f, i + 1, 5));
-      bubble.position.set(...lerp3([-0.5, 0.1, 0.2], [0.32, 0.86 - i * 0.26, 0.55 + i * 0.05], k));
-      bubble.scale.setScalar(0.2 + 0.8 * Math.min(1, k));
-    });
   });
 
   return (
-    <group ref={root} userData={{ dissolve: summary.dissolve }}>
+    <group ref={root} userData={{ fade: summary.fade }}>
       <group position={[-0.58, 0, 0.18]} rotation={[0, 0.3, -0.02]} scale={1.4}>
-        <Device kind="phone" screen="summary" dissolve={summary.dissolve} state={summary.device} />
+        <Device kind="phone" screen="summary" fade={summary.fade} state={summary.device} />
       </group>
       <group position={[0.42, -0.66, 0.25]} rotation={[0.12, -0.28, 0]}>
         <mesh geometry={roundedBox(1.3, 0.04, 0.42, 0.02)} material={materials.base} />
@@ -449,17 +416,6 @@ export function Summary() {
           />
         ))}
       </group>
-      {materials.bubbles.map((material, i) => (
-        <mesh
-          key={i}
-          ref={(mesh) => {
-            bubbles.current[i] = mesh;
-          }}
-          rotation={[0, -0.2, 0]}
-          geometry={roundedBox(0.66, 0.19, 0.035, 0.09)}
-          material={material}
-        />
-      ))}
     </group>
   );
 }
