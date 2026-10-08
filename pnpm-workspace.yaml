@@ -1,0 +1,12 @@
+# Tedarik zinciri kuralları ana uygulama deposundan (derslik) kopyalandı.
+# Bir sürüm yayınlandıktan en az 7 gün geçmeden kurulmaz.
+minimumReleaseAge: 10080
+minimumReleaseAgeIgnoreMissingTime: false
+# Alt bağımlılıklar yalnızca kayıt defterinden gelir, git veya URL'den değil.
+blockExoticSubdeps: true
+strictDepBuilds: true
+allowBuilds:
+  sharp: true
+  unrs-resolver: true
+  esbuild: true
+  fsevents: true
