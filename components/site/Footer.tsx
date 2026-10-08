@@ -2,7 +2,6 @@ import { currentLocale, getContent } from "@/lib/locale.ts";
 import { links, site } from "@/lib/site.ts";
 import { LanguageSwitcher } from "./LanguageSwitcher.tsx";
 import { Logo } from "./Logo.tsx";
-import { Rich } from "./Rich.tsx";
 
 export async function Footer() {
   const locale = await currentLocale();
@@ -17,9 +16,9 @@ export async function Footer() {
         </div>
         <div className="flex flex-col gap-2 md:col-span-4">
           <p className="text-sm font-medium text-ink">{footer.contact}</p>
-          <p className="text-muted">
-            <Rich text={footer.contactValue} />
-          </p>
+          <a href={`mailto:${site.email}`} className="w-fit text-muted transition-colors hover:text-ink">
+            {site.email}
+          </a>
         </div>
         <div className="flex md:col-span-3 md:justify-end">
           <LanguageSwitcher locale={locale} label={nav.language} placement="above" />

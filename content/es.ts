@@ -127,7 +127,6 @@ export const es: Content = {
   footer: {
     tagline: "Tu espacio para clases particulares.",
     contact: "Contacto",
-    contactValue: "[POR COMPLETAR: correo de contacto]",
     privacy: "Privacidad",
     terms: "Condiciones de uso",
     rights: "Todos los derechos reservados.",

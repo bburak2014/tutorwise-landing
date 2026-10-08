@@ -39,8 +39,9 @@ pnpm e2e          # ziyaretçi gibi: bağlantılar, menü, bölüm çizgisi, iml
 | Ne | Nerede |
 |---|---|
 | Metinler (7 dil) | `content/<dil>.ts`. Türkçe kaynak; diğerleri aynı anahtarları taşımak zorunda (derleme hatası). |
-| Gerçek bilgi bekleyenler | Sayfada sarı kesik çizgiyle görünür: `[YER TUTUCU …]`, `[PLACEHOLDER …]` vb. (ekip hikâyesi, iletişim e-postası). |
+| Gerçek bilgi bekleyenler | Sayfada sarı kesik çizgiyle görünür: `[YER TUTUCU …]`, `[PLACEHOLDER …]` vb. (ekip hikâyesi). |
 | Bağlantılar (uygulama, mağazalar, gizlilik) | `lib/site.ts` → `links` (şimdilik hepsi `#`). |
+| İletişim e-postası (alt bilgi, bütün dillerde) | `lib/site.ts` → `email`. |
 | Dil çerezinin alan adı | `lib/site.ts` → `cookieDomain` (örn. `.tutorwise.academy`, uygulamayla paylaşmak için). |
 | Kitabın her bölümdeki pozu | `three/choreography.ts` → `keys.wide` / `keys.narrow`. |
 | Sayfa görselleri (yazısız) ve çizilme sırası | `three/pageArt.ts` (`inkLayers`: çizim + zaman haritası). |

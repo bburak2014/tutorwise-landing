@@ -127,7 +127,6 @@ export const fr: Content = {
   footer: {
     tagline: "L'espace de travail des cours particuliers.",
     contact: "Contact",
-    contactValue: "[À COMPLÉTER : e-mail de contact]",
     privacy: "Confidentialité",
     terms: "Conditions d'utilisation",
     rights: "Tous droits réservés.",

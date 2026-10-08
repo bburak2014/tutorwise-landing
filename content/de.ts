@@ -127,7 +127,6 @@ export const de: Content = {
   footer: {
     tagline: "Der Arbeitsbereich für Nachhilfe.",
     contact: "Kontakt",
-    contactValue: "[PLATZHALTER: Kontakt-E-Mail]",
     privacy: "Datenschutz",
     terms: "Nutzungsbedingungen",
     rights: "Alle Rechte vorbehalten.",

@@ -113,7 +113,6 @@ export const zh: Content = {
   footer: {
     tagline: "私教工作区。",
     contact: "联系我们",
-    contactValue: "[待补充：联系邮箱]",
     privacy: "隐私",
     terms: "使用条款",
     rights: "保留所有权利。",

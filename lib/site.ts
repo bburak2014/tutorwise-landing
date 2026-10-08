@@ -2,6 +2,8 @@ export const site = {
   name: "Tutorwise",
   domain: "tutorwise.academy",
   url: "https://tutorwise.academy",
+  /** Alt bilgideki iletişim adresi (bütün dillerde aynı). */
+  email: "info@tutorwise.academy",
   /** Dil çerezinin alan adı. Boşsa yalnız bu host; ".tutorwise.academy"
    *  yazılırsa uygulama alt alan adındaysa da aynı dili görür. */
   cookieDomain: "",
