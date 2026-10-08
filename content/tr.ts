@@ -130,7 +130,6 @@ export const tr = {
   footer: {
     tagline: "Özel ders için çalışma alanı.",
     contact: "İletişim",
-    contactValue: "[YER TUTUCU: iletişim e-postası]",
     privacy: "Gizlilik",
     terms: "Kullanım koşulları",
     rights: "Tüm hakları saklıdır.",

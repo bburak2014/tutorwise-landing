@@ -119,7 +119,6 @@ export const ja: Content = {
   footer: {
     tagline: "個別指導のためのワークスペース。",
     contact: "お問い合わせ",
-    contactValue: "[要記入：連絡先メールアドレス]",
     privacy: "プライバシー",
     terms: "利用規約",
     rights: "All rights reserved.",
