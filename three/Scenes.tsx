@@ -4,21 +4,20 @@ import { easing } from "maath";
 import { useRef } from "react";
 import { Vector2, type Group } from "three";
 import type { Layout } from "./choreography.ts";
-import { Morph } from "./Morph.tsx";
 import { Devices, Roles } from "./scenes/Closing.tsx";
 import { Board, Calendar, Credits, Homework, Summary } from "./scenes/Features.tsx";
 import { Logo } from "./scenes/Logo.tsx";
 import { story } from "./story.ts";
 
 /** Nesnelerin durduğu yer: geniş ekranda metnin sağında, dar ekranda üstte
- *  ortada (daha küçük). Bütün nesneler aynı yerde belirir; parçacıklar
- *  yerinde dönüşür, kamera çevresinde döner. */
+ *  ortada (daha küçük). Bütün nesneler aynı yerde belirir; kamera
+ *  çevresinde döner. */
 export const STAGE: Record<Layout, { x: number; y: number; z: number; scale: number }> = {
   wide: { x: 1.85, y: -0.1, z: 0, scale: 1 },
   narrow: { x: 0, y: 1.1, z: 0, scale: 0.5 },
 };
 
-export function Scenes({ particles }: Readonly<{ particles: number }>) {
+export function Scenes() {
   const root = useRef<Group>(null);
   const pointer = useRef(new Vector2());
   useFrame((_, delta) => {
@@ -43,7 +42,6 @@ export function Scenes({ particles }: Readonly<{ particles: number }>) {
         <Roles />
         <Devices />
       </group>
-      <Morph count={particles} />
     </>
   );
 }

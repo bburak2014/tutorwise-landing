@@ -7,13 +7,15 @@ import { story } from "@/three/story.ts";
 
 /** 3D'nin zarifçe izleyebileceği en yüksek kaydırma hızı (sahne/sn). */
 const RACE_SPEED = 3;
-const DIM = 0.15;
+/** Hızlı kaydırma bu kadar süre (ms) durunca 3D yeni yerine geçer. */
+const SETTLE_MS = 160;
 
 /** Kaydırmayı 3D hikâyeye bağlar: sahnelerin (data-scene) konumlarını ölçer,
  *  görünüm alanının ortasından beat'i hesaplar; GSAP ile yumuşatır. Sayfa
  *  bir adımda bir sahneden fazla atlarsa (bağlantı, End tuşu) ya da 3D'nin
  *  zarifçe izleyebileceğinden hızlı kayarsa (hızlı fırlatma) 3D yarışmaz:
- *  kararır, kaydırmayı anında izler ve kaydırma durunca yeni yerinde belirir.
+ *  olduğu yerde, aydınlık bekler; kaydırma durunca aradaki sahneleri
+ *  oynatmadan yeni yerine geçer (story.jump). Işık ve parlaklık değişmez.
  *  Hareket azaltma açıksa beat her sahnenin okuma anına oturur, geçiş anidir. */
 export function ScrollDriver() {
   useEffect(() => {
@@ -54,29 +56,26 @@ export function ScrollDriver() {
     // Tekerlek adımları kesik kesik gelir; 3D'de akıcı görünsün diye kısa bir yumuşatma.
     const smooth = gsap.quickTo(story, "beat", { duration: 0.6, ease: "power3.out" });
     const current = () => beatFromScroll(window.scrollY + window.innerHeight / 2, tops, lastBottom);
-    const stage = () => document.querySelector<HTMLElement>(".stage");
-    const fade = (keyframes: Keyframe[], options: KeyframeAnimationOptions) => {
-      const el = stage();
-      if (!el) return;
-      for (const animation of el.getAnimations()) animation.cancel();
-      el.animate(keyframes, options);
+    const hold = (beat: number) => {
+      smooth(beat, beat);
+      story.beat = beat;
     };
     let racing = false;
     let settle = 0;
     let speed = 0;
     let lastAt = performance.now();
-    /** 3D karanlıkta kaydırmayı anında izler; kaydırma durunca belirir. */
+    /** 3D kaydırmayla yarışmaz: o anki sahnede bekler, kaydırma durunca geçer. */
     const race = () => {
-      if (!racing) fade([{ opacity: DIM }, { opacity: DIM }], { duration: 1, fill: "forwards" });
+      if (!racing) hold(story.beat);
       racing = true;
-      smooth(story.target, story.target);
-      story.beat = story.target;
       window.clearTimeout(settle);
       settle = window.setTimeout(() => {
         racing = false;
         speed = 0;
-        fade([{ opacity: DIM }, { opacity: 1 }], { duration: 480, easing: "cubic-bezier(0.2, 0.7, 0.2, 1)" });
-      }, 160);
+        const from = story.beat;
+        hold(story.target);
+        if (from !== story.target) story.jump = { from, to: story.target, start: performance.now() };
+      }, SETTLE_MS);
     };
     const update = () => {
       const previous = story.target;

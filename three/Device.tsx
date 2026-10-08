@@ -13,7 +13,7 @@ import {
   type Texture,
 } from "three";
 import type { DeviceKind, ScreenId } from "./choreography.ts";
-import { dissolvable, type Dissolve } from "./dissolve.ts";
+import { fading, type Fade } from "./fade.ts";
 import { drawScreen } from "./screenArt.ts";
 import { story } from "./story.ts";
 import { canvasTexture } from "./textures.ts";
@@ -174,21 +174,21 @@ export type DeviceState = { reveal: number };
 export function Device({
   kind,
   screen,
-  dissolve,
+  fade,
   state,
-}: Readonly<{ kind: DeviceKind; screen: ScreenId; dissolve: Dissolve; state: DeviceState }>) {
+}: Readonly<{ kind: DeviceKind; screen: ScreenId; fade: Fade; state: DeviceState }>) {
   const screens = useScreens();
   const display = useRef<Mesh>(null);
   const spec = SPEC[kind];
   const [assets] = useState(() => ({
-    body: dissolvable(
+    body: fading(
       new MeshPhysicalMaterial({ color: "#1d2030", metalness: 0.85, roughness: 0.3, clearcoat: 0.7, clearcoatRoughness: 0.25 }),
-      dissolve,
+      fade,
     ),
-    screen: dissolvable(screenMaterial(screens[screen]), dissolve),
-    glass: dissolvable(
+    screen: fading(screenMaterial(screens[screen]), fade),
+    glass: fading(
       new MeshPhysicalMaterial({ transparent: true, opacity: 0.08, roughness: 0.05, metalness: 0, envMapIntensity: 1.4 }),
-      dissolve,
+      fade,
     ),
   }));
   const geometries = useMemo(

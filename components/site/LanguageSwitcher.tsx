@@ -58,7 +58,7 @@ export function LanguageSwitcher({
       <ul
         id={listId}
         hidden={!open}
-        className={`glass absolute right-0 z-50 min-w-48 rounded-2xl p-1.5 shadow-2xl shadow-black/40 ${position}`}
+        className={`absolute right-0 z-50 min-w-48 rounded-2xl border border-line-strong bg-night p-1.5 shadow-2xl shadow-black/50 ${position}`}
       >
         {locales.map((item) => (
           <li key={item}>

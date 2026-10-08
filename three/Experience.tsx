@@ -5,6 +5,7 @@ import {
   NeutralToneMapping,
   WebGLRenderTarget,
   type Camera,
+  type Material,
   type Mesh,
   type Object3D,
   type Scene,
@@ -17,6 +18,7 @@ import { CameraRig } from "./CameraRig.tsx";
 import { installThreeConsole } from "./console.ts";
 import { ScreensProvider } from "./Device.tsx";
 import { Director } from "./Director.tsx";
+import { eachFadeVariant } from "./fade.ts";
 import { Scenes } from "./Scenes.tsx";
 import { Studio } from "./Studio.tsx";
 import { story } from "./story.ts";
@@ -52,7 +54,8 @@ function FrameScheduler({ onDecline }: Readonly<{ onDecline: () => void }>) {
         Math.abs(story.beat - story.target) > 0.0005 ||
         story.intro < 1 ||
         now - story.activeAt < 1000 ||
-        now < story.busyUntil;
+        now < story.busyUntil ||
+        story.jump !== null;
       if (moving && !declined && last > 0) {
         samples.push(now - last);
         if (samples.length === 60) {
@@ -82,9 +85,11 @@ function FrameScheduler({ onDecline }: Readonly<{ onDecline: () => void }>) {
 function precompile(gl: WebGLRenderer, scene: Scene, camera: Camera, offscreen: WebGLRenderTarget | null) {
   const hidden: Object3D[] = [];
   const textures = new Set<Texture>();
+  const materials: Material[] = [];
   scene.traverse((object) => {
     const material = (object as Mesh).material;
     for (const item of [material ?? []].flat()) {
+      materials.push(item);
       for (const value of Object.values(item)) if ((value as Texture | null)?.isTexture) textures.add(value as Texture);
       // Gölgelendiriciye elle verilen dokular (ör. sayfa çizimleri) malzemenin userData'sında.
       for (const extra of (item.userData?.textures ?? []) as Texture[]) textures.add(extra);
@@ -97,10 +102,12 @@ function precompile(gl: WebGLRenderer, scene: Scene, camera: Camera, offscreen: 
   for (const texture of textures) gl.initTexture(texture);
   const previous = gl.getRenderTarget();
   gl.setRenderTarget(offscreen);
-  const pending = gl.compileAsync(scene, camera);
+  // Solan malzemelerin opak ve saydam gölgelendiricileri birlikte derlenir.
+  const pending: Promise<unknown>[] = [];
+  eachFadeVariant(materials, () => pending.push(gl.compileAsync(scene, camera)));
   gl.setRenderTarget(previous);
   for (const object of hidden) object.visible = false;
-  return pending;
+  return Promise.all(pending);
 }
 
 /** Tuval görünmeden önce bütün gölgelendiriciler derlenir; derleme bitince
@@ -164,9 +171,9 @@ export default function Experience({
       <Suspense fallback={null}>
         <Studio hdri={tier === "high"} />
         <ScreensProvider>
-          <Scenes particles={tier === "high" ? 2600 : 1400} />
+          <Scenes />
         </ScreensProvider>
-        <Atmosphere tier={tier} />
+        <Atmosphere />
         <Warmup onReady={onReady} effects={effects} />
       </Suspense>
       {effects && (

@@ -23,4 +23,7 @@ export const story = {
   /** Kaydırmadan bağımsız süren bir animasyonun (sayfadaki çizimler) bitiş
    *  zamanı; o zamana kadar tuval her karede çizilir. */
   busyUntil: 0,
+  /** Doğrudan geçiş (bağlantı, hızlı kaydırma): nereden nereye ve ne zaman
+   *  başladı. Director aradaki sahneleri oynatmadan geçer; bitince null. */
+  jump: null as { from: number; to: number; start: number } | null,
 };
