@@ -19,7 +19,7 @@ try {
   await page.viewport(Number(width), Number(height), { dpr: isMobile ? 2 : 1, mobile: isMobile });
   await page.goto(url, { settle });
   const scenes = await page.eval(
-    `[...document.querySelectorAll("[data-scene]")].map((el) => [el.dataset.scene, Math.round(el.getBoundingClientRect().top + scrollY)])`,
+    `[...document.querySelectorAll("[data-scene]")].filter((el) => el.getClientRects().length > 0).map((el) => [el.dataset.scene, Math.round(el.getBoundingClientRect().top + scrollY)])`,
   );
   const shots = [["top", 0], ...scenes.filter(([scene]) => scene !== "hero")];
   for (const [scene, top] of shots) {

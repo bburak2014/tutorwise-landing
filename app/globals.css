@@ -262,16 +262,18 @@ body {
    altından başlar. Metin kaydırılınca kitabın üstünden geçer; arkasındaki
    koyu geçiş zemini okunurluğu korur. Katmansız: Tailwind boşluklarını geçer. */
 @media (max-width: 1023px) {
-  [data-scene] {
+  .scene {
     align-items: flex-start;
     padding-top: 44svh;
   }
-  [data-scene] > .shell,
+  .scene > .shell,
+  .chapter > div,
   #features > .shell:first-child {
     position: relative;
     isolation: isolate;
   }
-  [data-scene] > .shell::before,
+  .scene > .shell::before,
+  .chapter > div::before,
   #features > .shell:first-child::before {
     content: "";
     position: absolute;
@@ -328,6 +330,70 @@ body {
     transform: translateY(26px);
     filter: blur(10px);
   }
+}
+
+/* Lenis (yumuşak kaydırma) için gerekenler (lenis/dist/lenis.css). */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis:not(.lenis-autoToggle).lenis-stopped {
+  overflow: clip;
+}
+.lenis.lenis-smooth iframe {
+  pointer-events: none;
+}
+
+/* Kartta imleci izleyen ışık (SpotlightCard --mx/--my yazar). */
+.spotlight {
+  position: relative;
+  isolation: isolate;
+  transform-style: preserve-3d;
+}
+.spotlight::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  background: radial-gradient(
+    420px circle at var(--mx, 50%) var(--my, 50%),
+    rgb(142 160 255 / 0.16),
+    transparent 60%
+  );
+}
+.spotlight:hover::before {
+  opacity: 1;
+}
+
+/* Alt bilginin dibindeki dev marka yazısı. */
+.wordmark {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 23.5vw;
+  line-height: 0.78;
+  letter-spacing: -0.055em;
+  text-align: center;
+  white-space: nowrap;
+  margin-bottom: -0.06em;
+  background: linear-gradient(180deg, rgb(238 240 251 / 0.14), rgb(238 240 251 / 0.02) 75%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.wordmark div {
+  background: inherit;
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+/* "Kitap okuma" bölümünün arkasındaki büyük, yalnız konturlu numara. */
+.chapter-numeral {
+  color: transparent;
+  -webkit-text-stroke: 1px rgb(142 160 255 / 0.11);
+  letter-spacing: -0.04em;
 }
 
 /* Poster çekimi: yalnız sahne görünür. */

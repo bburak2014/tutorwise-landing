@@ -15,4 +15,6 @@ export const story = {
   reduced: false,
   /** Poster çekimi (?poster=<beat>): sahne sabit, cihazlar gizli. */
   poster: false,
+  /** Sinematik açılışın ilerlemesi (0 → 1); tuval belirince GSAP sürer. */
+  intro: 1,
 };

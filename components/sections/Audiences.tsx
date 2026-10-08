@@ -1,3 +1,4 @@
+import { SpotlightCard } from "@/components/motion/SpotlightCard.tsx";
 import { ArrowRight } from "@/components/site/Icons.tsx";
 import { getContent } from "@/lib/locale.ts";
 import { links } from "@/lib/site.ts";
@@ -14,7 +15,7 @@ export async function Audiences() {
       id="audiences"
       data-scene="audiences"
       aria-labelledby="audiences-title"
-      className="relative flex min-h-svh items-center py-32"
+      className="scene relative flex min-h-svh items-center py-32"
     >
       <div className="shell w-full">
         <div className="max-w-3xl">
@@ -30,17 +31,14 @@ export async function Audiences() {
         <ul className="mt-16 grid gap-4 md:grid-cols-3">
           {cards.map((card) => (
             <li key={card.title} data-reveal>
-              <a
-                href={card.href}
-                className="glass group flex h-full flex-col rounded-3xl p-8 transition-colors hover:border-line-strong"
-              >
+              <SpotlightCard href={card.href}>
                 <h3 className="heading text-3xl">{card.title}</h3>
                 <p className="mt-4 flex-1 text-text">{card.body}</p>
                 <span className="link-arrow mt-10">
                   {card.cta}
                   <ArrowRight />
                 </span>
-              </a>
+              </SpotlightCard>
             </li>
           ))}
         </ul>

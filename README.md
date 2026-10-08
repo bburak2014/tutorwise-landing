@@ -3,9 +3,11 @@
 [tutorwise.academy](https://tutorwise.academy) için statik tanıtım sitesi. Next.js 16
 (`output: "export"`), React Three Fiber, Drei ve GSAP. 7 dil: tr, en, de, fr, es, zh, ja.
 
-Sayfa kaydırıldıkça açılan bir kitap anlatır: kapak açılır, her özellik bölümünde bir
-sayfa döner ve sayfadan, o dildeki gerçek uygulama ekranını gösteren bir tablet ya da
-telefon yükselir.
+Sayfa kaydırıldıkça açılan bir kitap anlatır: kitap karanlıktan ışığa doğru süzülerek
+gelir, kapak açılır, her özellik bölümünde bir sayfa döner ve sayfadan, o dildeki gerçek
+uygulama ekranını gösteren bir tablet ya da telefon yükselir. Geniş ekranda beş özellik
+tek, sabitlenmiş bir sahnede okunur (soldaki 01–05 çizgisi); sayfa sonunda kitap kapanır,
+sırtı nabız gibi parlar.
 
 ## Başlatma
 
@@ -38,6 +40,8 @@ pnpm verify       # gerçek tarayıcıda: yönlendirme, 7 dil × 2 düzen, FPS, 
 | Dil çerezinin alan adı | `lib/site.ts` → `cookieDomain` (örn. `.tutorwise.academy`, uygulamayla paylaşmak için). |
 | Kitabın her bölümdeki pozu | `three/choreography.ts` → `keys.wide` / `keys.narrow`. |
 | Sayfa görselleri (yazısız) | `three/pageArt.ts`. |
+| Açılış, sırt ışığı, bölüm geçişi (saf fonksiyonlar) | `three/choreography.ts` → `introPose`, `spineGlow`, `chapterIndex`. |
+| Işık huzmesi, zemin yansıması, toz | `three/Atmosphere.tsx`. |
 
 Dil listesi, eşleme kuralları ve bayraklar ana uygulamadan (derslik deposu,
 `packages/contracts/src/i18n`) kopyalandı; uygulamaya dil eklenirse `i18n/` de güncellenir.
@@ -60,10 +64,11 @@ yazıları "Tutorwise" ile değiştirilir.
 
 ## Performans ve yedekler
 
-- Sahnenin poster görüntüsü anında görünür; 3D hazır olunca üstüne gelir.
-- Masaüstünde 3D tarayıcı boşa çıkınca, dokunmatik ya da zayıf cihazlarda ilk etkileşimde yüklenir.
+- Masaüstünde 3D tarayıcı boşa çıkınca yüklenir ve açılış oynar.
+- Dokunmatik ya da zayıf cihazlarda önce sahnenin poster görüntüsü görünür; 3D ilk etkileşimde yüklenir ve aynı pozdan devam eder.
+- Yumuşak kaydırma (Lenis) yalnız fare ve dokunmatik yüzeyde; telefonda kaydırma tarayıcıda kalır.
 - Kare hızı düşerse çözünürlük, sonra efektler kendiliğinden kapanır.
-- `prefers-reduced-motion`: animasyon yok, sahne her bölümde sabit poz.
+- `prefers-reduced-motion`: açılış, yumuşak kaydırma ve eğilme yok; sahne her bölümde sabit poz.
 - WebGL yoksa posterler gösterilir.
 
 ## Yayın

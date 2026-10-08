@@ -2,11 +2,14 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   beatFromScroll,
+  chapterIndex,
   deviceAt,
+  introPose,
   keys,
   pageTurn,
   poseAt,
   scenes,
+  spineGlow,
 } from "../three/choreography.ts";
 
 const near = (a: number, b: number) => Math.abs(a - b) < 1e-6;
@@ -80,4 +83,38 @@ test("deviceAt hides the device between chapters and outside them", () => {
   assert.ok(near(deviceAt(3).rise, 0));
   assert.ok(near(deviceAt(1.5).rise, 0));
   assert.equal(deviceAt(1.5).screen, null);
+});
+
+test("introPose starts far back with the spine light off and lands on the pose", () => {
+  const target = keys.wide[0];
+  const start = introPose(target, 0);
+  assert.ok(start.z < target.z - 3);
+  assert.equal(start.glow, 0);
+  assert.deepEqual(introPose(target, 1), target);
+});
+
+test("introPose moves steadily towards the pose", () => {
+  const target = keys.wide[0];
+  const zs = [0, 0.25, 0.5, 0.75, 1].map((t) => introPose(target, t).z);
+  for (let i = 1; i < zs.length; i++) assert.ok(zs[i] >= zs[i - 1]);
+});
+
+test("spineGlow is off, flickers on, then stays on", () => {
+  assert.equal(spineGlow(0), 0);
+  assert.equal(spineGlow(1), 1);
+  const samples = Array.from({ length: 101 }, (_, i) => spineGlow(i / 100));
+  assert.ok(samples.every((v) => v >= 0 && v <= 1));
+  assert.ok(samples.some((v, i) => i > 0 && v < samples[i - 1]), "no flicker");
+});
+
+test("chapterIndex switches halfway between two chapters", () => {
+  assert.equal(chapterIndex(0, 5), 0);
+  assert.equal(chapterIndex(0.124, 5), 0);
+  assert.equal(chapterIndex(0.126, 5), 1);
+  assert.equal(chapterIndex(1, 5), 4);
+});
+
+test("chapterIndex clamps outside the pinned range", () => {
+  assert.equal(chapterIndex(-0.2, 5), 0);
+  assert.equal(chapterIndex(1.3, 5), 4);
 });

@@ -1,30 +1,35 @@
 "use client";
 import { useEffect, useState } from "react";
 import { scenes, type Scene } from "@/three/choreography.ts";
+import { story } from "@/three/story.ts";
 
-/** 3D sahnenin sabit görüntüsü (public/poster): tuval hazır olana kadar yer
- *  tutucu, WebGL yoksa sahnenin kendisi. Görünüm alanının ortasındaki
- *  bölümün görüntüsü gösterilir. */
+/** 3D sahnenin sabit görüntüsü (public/poster): telefonda tuval hazır olana
+ *  kadar yer tutucu, WebGL yoksa sahnenin kendisi. Hangi sahnenin
+ *  gösterileceği 3D ile aynı kaynaktan, ScrollDriver'ın kaydırmadan
+ *  hesapladığı beat'ten okunur. */
 export function ScenePoster() {
   const [scene, setScene] = useState<Scene>(scenes[0]);
   const [narrow, setNarrow] = useState(false);
 
   useEffect(() => {
     const media = window.matchMedia("(max-width: 1023px)");
-    const onMedia = () => setNarrow(media.matches);
-    onMedia();
-    media.addEventListener("change", onMedia);
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries)
-          if (entry.isIntersecting) setScene((entry.target as HTMLElement).dataset.scene as Scene);
-      },
-      { rootMargin: "-50% 0px -50% 0px" },
-    );
-    document.querySelectorAll("[data-scene]").forEach((el) => observer.observe(el));
+    let frame = 0;
+    // ScrollDriver beat'i aynı kaydırma olayında günceller; bir kare sonra okunur.
+    const update = () => {
+      frame = 0;
+      setNarrow(media.matches);
+      setScene(scenes[Math.min(scenes.length - 1, Math.max(0, Math.floor(story.target)))]);
+    };
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+    schedule();
+    window.addEventListener("scroll", schedule, { passive: true });
+    media.addEventListener("change", schedule);
     return () => {
-      media.removeEventListener("change", onMedia);
-      observer.disconnect();
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", schedule);
+      media.removeEventListener("change", schedule);
     };
   }, []);
 

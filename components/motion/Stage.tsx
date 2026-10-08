@@ -1,7 +1,9 @@
 "use client";
+import gsap from "gsap";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
-import { startingTier, supportsWebGL } from "@/three/quality.ts";
+import { prefersReducedMotion, startingTier, supportsWebGL } from "@/three/quality.ts";
+import { story } from "@/three/story.ts";
 import { ScenePoster } from "./ScenePoster.tsx";
 
 // 3D paketi yalnız tarayıcıda ve ilk boyamadan sonra yüklenir.
@@ -9,20 +11,28 @@ const Experience = dynamic(() => import("@/three/Experience.tsx"), { ssr: false 
 
 const INTERACTIONS = ["pointerdown", "touchstart", "wheel", "keydown", "scroll"] as const;
 
-/** Sabit sahne. Sahnenin poster görüntüsü anında görünür; 3D tuval hazır
- *  olunca üstüne yumuşakça gelir, poster sonra kaldırılır. Güçlü
- *  cihazlarda 3D tarayıcı boşa çıkınca, dokunmatik ya da zayıf cihazlarda
- *  ziyaretçi sayfayla ilk etkileşime girince yüklenir: hemen çıkan biri
- *  megabaytlarca 3D indirmez. WebGL yoksa poster kalır. */
+type Mode = "idle" | "on-demand";
+
+/** Sabit sahne.
+ *  - Güçlü cihaz: 3D tarayıcı boşa çıkınca yüklenir; tuval belirince
+ *    sinematik açılış oynar (kitap derinlikten gelir, sırt ışığı yanar).
+ *  - Dokunmatik/zayıf cihaz: sahnenin poster görüntüsü hemen görünür, 3D
+ *    ilk etkileşimde yüklenir ve posterle aynı pozdan devam eder (açılış
+ *    oynamaz, sıçrama olmasın). Hemen çıkan biri megabaytlarca 3D indirmez.
+ *  - WebGL yoksa poster kalır. */
 export function Stage() {
+  const [mode, setMode] = useState<Mode | null>(null);
   const [tier, setTier] = useState<"high" | "low" | null>(null);
   const [visible, setVisible] = useState(false);
   const [posterGone, setPosterGone] = useState(false);
+  const [noWebGL, setNoWebGL] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     const begin = () => {
-      if (!cancelled && supportsWebGL()) setTier(startingTier());
+      if (cancelled) return;
+      if (supportsWebGL()) setTier(startingTier());
+      else setNoWebGL(true);
     };
     const onDemand = window.matchMedia("(pointer: coarse)").matches || startingTier() === "low";
     if (onDemand) {
@@ -31,40 +41,52 @@ export function Stage() {
         begin();
       };
       for (const name of INTERACTIONS) window.addEventListener(name, once, { passive: true });
+      const id = setTimeout(() => setMode("on-demand"), 0);
       return () => {
         cancelled = true;
+        clearTimeout(id);
         for (const name of INTERACTIONS) window.removeEventListener(name, once);
       };
     }
-    if ("requestIdleCallback" in window) {
-      const id = window.requestIdleCallback(begin, { timeout: 1500 });
-      return () => {
-        cancelled = true;
-        window.cancelIdleCallback(id);
-      };
-    }
-    const id = setTimeout(begin, 300);
+    const id =
+      "requestIdleCallback" in window
+        ? window.requestIdleCallback(begin, { timeout: 1500 })
+        : setTimeout(begin, 300);
+    const modeId = setTimeout(() => setMode("idle"), 0);
     return () => {
       cancelled = true;
-      clearTimeout(id);
+      clearTimeout(modeId);
+      if ("cancelIdleCallback" in window) window.cancelIdleCallback(id as number);
+      clearTimeout(id as ReturnType<typeof setTimeout>);
     };
   }, []);
 
   useEffect(() => {
     if (!visible) return;
-    const id = setTimeout(() => setPosterGone(true), 1800);
+    const id = setTimeout(() => setPosterGone(true), 1200);
     return () => clearTimeout(id);
   }, [visible]);
 
+  const onReady = () => {
+    const intro = mode === "idle" && !story.reduced && !prefersReducedMotion() && !story.poster;
+    if (intro) {
+      story.intro = 0;
+      gsap.to(story, { intro: 1, duration: 3.2, ease: "none", delay: 0.15 });
+    }
+    setVisible(true);
+  };
+
+  // Poster yalnız dokunmatik/zayıf cihazda yer tutucudur; WebGL yoksa her yerde.
+  const showPoster = noWebGL || (!posterGone && mode === "on-demand");
   return (
     <div className="stage" aria-hidden="true">
-      {!posterGone && <ScenePoster />}
+      {showPoster && <ScenePoster />}
       {tier && (
         <div
-          className="absolute inset-0 transition-opacity duration-[1600ms] ease-out"
+          className="absolute inset-0 transition-opacity duration-700 ease-out"
           style={{ opacity: visible ? 1 : 0 }}
         >
-          <Experience tier={tier} onReady={() => setVisible(true)} />
+          <Experience tier={tier} onReady={onReady} />
         </div>
       )}
     </div>

@@ -2,13 +2,16 @@
 import { useFrame, useThree } from "@react-three/fiber";
 import { createContext, useContext, useEffect, useMemo, useRef, type ReactNode } from "react";
 import {
+  AdditiveBlending,
   ExtrudeGeometry,
   MeshBasicMaterial,
+  ShaderMaterial,
   SRGBColorSpace,
   Shape,
   ShapeGeometry,
   TextureLoader,
   type Group,
+  type Mesh,
   type Texture,
 } from "three";
 import { smoothstep, type DeviceKind, type ScreenId } from "./choreography.ts";
@@ -77,8 +80,54 @@ function bodyGeometry(kind: DeviceKind) {
   return geometry;
 }
 
-export function DeviceModel({ kind, screen }: Readonly<{ kind: DeviceKind; screen: MeshBasicMaterial }>) {
+/** Ekranın üzerinden geçen çapraz ışık bandı: cihaz yerine otururken bir
+ *  kez soldan sağa süpürür. Konum dışarıdan (sheen.value) verilir. */
+const sheenFragment = /* glsl */ `
+  uniform float uPos;
+  varying vec2 vUv;
+  void main() {
+    float d = abs((vUv.x + vUv.y * 0.45) - uPos);
+    float band = 1.0 - smoothstep(0.0, 0.14, d);
+    gl_FragColor = vec4(vec3(1.0), band * 0.32);
+  }
+`;
+const sheenVertex = /* glsl */ `
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+/** Parlamanın konumu için dışarıdan yazılan değer (React state'i değil). */
+export type Sheen = { value: number };
+
+export function DeviceModel({
+  kind,
+  screen,
+  sheen,
+}: Readonly<{ kind: DeviceKind; screen: MeshBasicMaterial; sheen?: Sheen }>) {
   const spec = SPEC[kind];
+  const band = useRef<Mesh>(null);
+  const sheenMaterial = useMemo(
+    () =>
+      new ShaderMaterial({
+        vertexShader: sheenVertex,
+        fragmentShader: sheenFragment,
+        transparent: true,
+        depthWrite: false,
+        blending: AdditiveBlending,
+        uniforms: { uPos: { value: -1 } },
+      }),
+    [],
+  );
+  useEffect(() => () => sheenMaterial.dispose(), [sheenMaterial]);
+  useFrame(() => {
+    if (!band.current || !sheen) return;
+    const pos = sheen.value;
+    band.current.visible = pos > -0.3 && pos < 1.75;
+    (band.current.material as ShaderMaterial).uniforms.uPos.value = pos;
+  });
   const geometries = useMemo(
     () => ({
       body: bodyGeometry(kind),
@@ -105,6 +154,15 @@ export function DeviceModel({ kind, screen }: Readonly<{ kind: DeviceKind; scree
         />
       </mesh>
       <mesh geometry={geometries.screen} position-z={spec.d / 2 + 0.0008} material={screen} />
+      {sheen && (
+        <mesh
+          ref={band}
+          geometry={geometries.screen}
+          position-z={spec.d / 2 + 0.0012}
+          material={sheenMaterial}
+          visible={false}
+        />
+      )}
       <mesh geometry={geometries.screen} position-z={spec.d / 2 + 0.0016}>
         <meshPhysicalMaterial transparent opacity={0.08} roughness={0.05} metalness={0} envMapIntensity={1.4} />
       </mesh>
@@ -176,6 +234,11 @@ function useScreenMaterial(initial: Texture) {
 }
 
 /** Özellik bölümlerinde sayfadan yükselen cihaz (kitabın çocuğu). */
+/** Cihaz yükselişinin son yarısında parlama -0.4'ten 1.8'e süpürür. */
+const sweep = (amount: number) => -0.4 + 2.2 * smoothstep(0.45, 1, amount);
+const chapterSheen = { tablet: { value: -1 }, phone: { value: -1 } };
+const pairSheen = { tablet: { value: -1 }, phone: { value: -1 } };
+
 export function ChapterDevices() {
   const screens = useScreens();
   const tabletScreen = useScreenMaterial(screens.calendar);
@@ -195,6 +258,7 @@ export function ChapterDevices() {
       group.visible = active;
       if (!active || !device.screen) continue;
       showScreen(material, screens[device.screen]);
+      chapterSheen[kind].value = story.reduced ? -1 : sweep(rise);
       // Sağ sayfanın ortasından yükselir; kitabın eğimini dengeleyip kameraya döner.
       group.position.set(0.66, -0.12 + rise * 0.28, 0.12 + rise * 0.78);
       group.rotation.set(-frame.pose.rx * rise * 0.9, -0.12 * rise, (1 - rise) * 0.08);
@@ -205,10 +269,10 @@ export function ChapterDevices() {
   return (
     <>
       <group ref={tablet} visible={false}>
-        <DeviceModel kind="tablet" screen={tabletScreen} />
+        <DeviceModel kind="tablet" screen={tabletScreen} sheen={chapterSheen.tablet} />
       </group>
       <group ref={phone} visible={false}>
-        <DeviceModel kind="phone" screen={phoneScreen} />
+        <DeviceModel kind="phone" screen={phoneScreen} sheen={chapterSheen.phone} />
       </group>
     </>
   );
@@ -230,6 +294,8 @@ export function PairDevices() {
     if (!root.current.visible) return;
     showScreen(tabletScreen, screens.calendar);
     showScreen(phoneScreen, screens.summary);
+    pairSheen.tablet.value = story.reduced ? -1 : sweep(amount);
+    pairSheen.phone.value = story.reduced ? -1 : sweep(Math.max(0, amount - 0.08));
     const narrow = story.layout === "narrow";
     const t = frame.time;
     const bob = story.reduced ? 0 : Math.sin(t * 0.8) * 0.03;
@@ -251,10 +317,10 @@ export function PairDevices() {
   return (
     <group ref={root} visible={false}>
       <group ref={tablet}>
-        <DeviceModel kind="tablet" screen={tabletScreen} />
+        <DeviceModel kind="tablet" screen={tabletScreen} sheen={pairSheen.tablet} />
       </group>
       <group ref={phone}>
-        <DeviceModel kind="phone" screen={phoneScreen} />
+        <DeviceModel kind="phone" screen={phoneScreen} sheen={pairSheen.phone} />
       </group>
     </group>
   );

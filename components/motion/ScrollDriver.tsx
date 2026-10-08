@@ -30,14 +30,19 @@ export function ScrollDriver() {
     let lastBottom = 0;
 
     const measure = () => {
-      const scenes = [...document.querySelectorAll<HTMLElement>("[data-scene]")];
+      // Sahne işaretleri düzene göre değişir (geniş ekranda sabit sahnenin
+      // içinde, dar ekranda bölümlerin başında); yalnız görünenler sayılır.
+      const scenes = [...document.querySelectorAll<HTMLElement>("[data-scene]")].filter(
+        (el) => el.getClientRects().length > 0,
+      );
       tops = scenes.map((el) => el.getBoundingClientRect().top + window.scrollY);
       const last = scenes.at(-1);
       lastBottom = last ? last.getBoundingClientRect().bottom + window.scrollY : 0;
       story.layout = layoutFor(window.innerWidth, window.innerHeight);
     };
 
-    const smooth = gsap.quickTo(story, "beat", { duration: 1.1, ease: "power3.out" });
+    // Lenis kaydırmayı zaten yumuşatıyor; burada kısa bir yumuşatma yeter.
+    const smooth = gsap.quickTo(story, "beat", { duration: 0.7, ease: "power3.out" });
     const current = () => beatFromScroll(window.scrollY + window.innerHeight / 2, tops, lastBottom);
     const update = () => {
       story.target = current();
