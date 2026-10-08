@@ -311,6 +311,17 @@ body {
     animation: none;
   }
 }
+/* Büyük başlık ilk boyamada görünür (opaklık 0'dan başlamaz): tarayıcı onu
+   en büyük içerik (LCP) olarak sayar. Yalnız kayar ve netleşir. */
+#top h1 [data-reveal] {
+  animation-name: hero-rise;
+}
+@keyframes hero-rise {
+  from {
+    transform: translateY(0.3em);
+    filter: blur(12px);
+  }
+}
 @keyframes hero-in {
   from {
     opacity: 0;
