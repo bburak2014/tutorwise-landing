@@ -41,7 +41,8 @@ export function ScrollDriver() {
       story.layout = layoutFor(window.innerWidth, window.innerHeight);
     };
 
-    const smooth = gsap.quickTo(story, "beat", { duration: 1.1, ease: "power3.out" });
+    // Lenis kaydırmayı zaten yumuşatıyor; burada kısa bir yumuşatma yeter.
+    const smooth = gsap.quickTo(story, "beat", { duration: 0.7, ease: "power3.out" });
     const current = () => beatFromScroll(window.scrollY + window.innerHeight / 2, tops, lastBottom);
     const update = () => {
       story.target = current();

@@ -8,12 +8,14 @@ import { Footer } from "@/components/site/Footer.tsx";
 import { Header } from "@/components/site/Header.tsx";
 import { Reveal } from "@/components/motion/Reveal.tsx";
 import { ScrollDriver } from "@/components/motion/ScrollDriver.tsx";
+import { SmoothScroll } from "@/components/motion/SmoothScroll.tsx";
 import { Stage } from "@/components/motion/Stage.tsx";
 
 export default function Home() {
   return (
     <>
       <Stage />
+      <SmoothScroll />
       <ScrollDriver />
       <Reveal />
       <Header />

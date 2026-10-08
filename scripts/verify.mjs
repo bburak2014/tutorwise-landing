@@ -133,7 +133,18 @@ try {
   });
   check("CSP allows Cloudflare Web Analytics", analytics.violations.length === 0, analytics);
 
-  // 3. Kare hızı (masaüstü, sayfa boyunca 14 sn kaydırma)
+  // 3. Kare hızı. Tarayıcının bu makinedeki tavanı (pil tasarrufunda 30
+  // olabilir) boş bir sayfada ölçülür; site bu tavanın %85'ine ulaşmalı.
+  const ceiling = await withPage(chrome, async (page) => {
+    await page.goto("about:blank", { settle: 300 });
+    return page.eval(`new Promise((resolve) => {
+      const frames = []; let last = performance.now(); const start = last;
+      const step = (now) => { frames.push(now - last); last = now;
+        if (now - start < 2000) requestAnimationFrame(step);
+        else resolve(Math.round(1000 / (frames.reduce((s, v) => s + v, 0) / frames.length))); };
+      requestAnimationFrame(step);
+    })`);
+  });
   const fps = await withPage(chrome, async (page) => {
     await page.viewport(1440, 900, { dpr: 1, mobile: false });
     await page.goto(`${origin}/tr/`, { settle: 7000 });
@@ -157,7 +168,7 @@ try {
       requestAnimationFrame(step);
     })`);
   });
-  check("scroll fps (headless, desktop)", fps.fps >= 30, fps);
+  check("scroll fps (headless, desktop)", fps.fps >= ceiling * 0.85, { ...fps, ceiling });
 
   // 4. Hareket azaltma
   const reduced = await withPage(chrome, async (page) => {

@@ -1,3 +1,4 @@
+import { Magnetic } from "@/components/motion/Magnetic.tsx";
 import { ArrowRight } from "@/components/site/Icons.tsx";
 import { getContent } from "@/lib/locale.ts";
 import { links } from "@/lib/site.ts";
@@ -21,10 +22,14 @@ export async function FinalCta() {
         <p className="mt-7 max-w-lg text-lg" data-reveal>
           {final.body}
         </p>
-        <a href={links.teacherStart} className="btn btn-primary mt-10" data-reveal>
-          {final.cta}
-          <ArrowRight />
-        </a>
+        <div className="mt-10" data-reveal>
+          <Magnetic strength={0.35}>
+            <a href={links.teacherStart} className="btn btn-primary h-14 px-7 text-base">
+              {final.cta}
+              <ArrowRight />
+            </a>
+          </Magnetic>
+        </div>
       </div>
     </section>
   );

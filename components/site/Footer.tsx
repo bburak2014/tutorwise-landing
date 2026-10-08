@@ -1,6 +1,7 @@
 import { currentLocale, getContent } from "@/lib/locale.ts";
 import { links, site } from "@/lib/site.ts";
 import { LanguageSwitcher } from "./LanguageSwitcher.tsx";
+import { Wordmark } from "@/components/motion/Wordmark.tsx";
 import { Logo } from "./Logo.tsx";
 import { Rich } from "./Rich.tsx";
 
@@ -43,6 +44,9 @@ export async function Footer() {
           </li>
         </ul>
         </div>
+      </div>
+      <div className="overflow-hidden px-2">
+        <Wordmark text={site.name} />
       </div>
     </footer>
   );
