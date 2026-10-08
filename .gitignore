@@ -9,3 +9,6 @@ next-env.d.ts
 # Ekran görüntüsü ve doğrulama sırasında üretilen geçici çıktılar
 reports/
 .superpowers/
+
+# wrangler dev yerel durumu
+.wrangler/

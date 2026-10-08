@@ -5,6 +5,8 @@
 //  3. Kaydırma sırasında kare hızı (headless; gerçek cihazı temsil etmez)
 //  4. Hareket azaltma: metin animasyonsuz ve hemen görünür
 //  5. WebGL kapalı: tuval yok, sahnenin poster görüntüsü yüklü
+//  6. Konsolda uyarı yok; CSP Cloudflare analitiğine izin veriyor; aria-label
+//     yalnız izin verilen öğelerde; LCP öğesi açılış başlığı
 // Önce: pnpm build && pnpm serve. Kullanım: node scripts/verify.mjs [adres]
 import { writeFileSync, mkdirSync } from "node:fs";
 import { launchChrome, wait } from "./lib/cdp.mjs";
@@ -67,18 +69,54 @@ try {
         await page.eval(`scrollTo(0, document.body.scrollHeight)`);
         await wait(800);
         const state = await page.eval(`({
+          // aria-label'ın yasak olduğu örtük roller (generic, paragraph, blockquote…)
+          badAria: [...document.querySelectorAll("[aria-label]")]
+            .filter((el) => !el.hasAttribute("role") && ["BLOCKQUOTE", "P", "SPAN", "DIV", "EM", "STRONG", "CODE"].includes(el.tagName))
+            .map((el) => el.tagName.toLowerCase() + ": " + el.getAttribute("aria-label").slice(0, 40)),
           lang: document.documentElement.lang,
           canvas: Boolean(document.querySelector(".stage canvas")),
           canvasOpacity: document.querySelector(".stage canvas")?.parentElement?.parentElement?.style.opacity ?? null,
           overflow: document.documentElement.scrollWidth - innerWidth,
           scenes: document.querySelectorAll("[data-scene]").length,
         })`);
-        return { ...state, errors: page.consoleErrors, failed: page.failedRequests };
+        return { ...state, errors: page.consoleErrors, warnings: page.consoleWarnings, failed: page.failedRequests };
       });
       const ok =
-        r.lang === locale && r.canvas && r.overflow <= 0 && r.scenes === 10 && r.errors.length === 0 && r.failed.length === 0;
+        r.lang === locale &&
+        r.canvas &&
+        r.overflow <= 0 &&
+        r.scenes === 10 &&
+        r.errors.length === 0 &&
+        r.warnings.length === 0 &&
+        r.badAria.length === 0 &&
+        r.failed.length === 0;
       check(`${locale} ${layout.name}`, ok, ok ? undefined : r);
     }
+
+  // LCP: ilk yüklemede en büyük boyanan öğe açılış başlığı olmalı (logo değil).
+  for (const layout of layouts) {
+    const lcp = await withPage(chrome, async (page) => {
+      await page.viewport(layout.width, layout.height, { dpr: layout.dpr, mobile: layout.mobile });
+      await page.goto(`${origin}/tr/`, { settle: 3000 });
+      return page.eval(`new Promise((resolve) => {
+        new PerformanceObserver((list) => {
+          const last = list.getEntries().at(-1);
+          resolve({ tag: last?.element?.tagName ?? null, inHeroTitle: Boolean(last?.element?.closest("#top h1")), text: (last?.element?.textContent ?? "").trim().slice(0, 30) });
+        }).observe({ type: "largest-contentful-paint", buffered: true });
+      })`);
+    });
+    check(`LCP is the hero title (${layout.name})`, lcp.inHeroTitle, lcp);
+  }
+
+  // CSP, Cloudflare'in sayfaya eklediği analitik betiğine izin vermeli.
+  const analytics = await withPage(chrome, async (page) => {
+    await page.goto(`${origin}/tr/`, { settle: 1500 });
+    const before = page.consoleErrors.length;
+    await page.eval(`(() => { const s = document.createElement("script"); s.defer = true; s.src = "https://static.cloudflareinsights.com/beacon.min.js"; document.head.append(s); })()`);
+    await wait(1500);
+    return { violations: page.consoleErrors.slice(before).filter((e) => e.includes("Content Security Policy")) };
+  });
+  check("CSP allows Cloudflare Web Analytics", analytics.violations.length === 0, analytics);
 
   // 3. Kare hızı (masaüstü, sayfa boyunca 14 sn kaydırma)
   const fps = await withPage(chrome, async (page) => {

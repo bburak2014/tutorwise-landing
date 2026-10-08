@@ -14,9 +14,10 @@ export async function About() {
       <div className="shell grid w-full lg:grid-cols-12">
         <div className="flex flex-col gap-8 lg:col-span-6">
           <p className="eyebrow">{about.label}</p>
-          <blockquote className="heading text-[clamp(2rem,3.7vw,3.25rem)]" data-split>
+          {/* Bölümün başlığı: SplitText başlıklara aria-label koyar; blockquote'ta bu nitelik yasak. */}
+          <h2 className="heading text-[clamp(2rem,3.7vw,3.25rem)]" data-split>
             {about.mission}
-          </blockquote>
+          </h2>
           <p className="text-lg" data-reveal>
             {about.body}
           </p>

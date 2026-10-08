@@ -8,6 +8,9 @@ const nextConfig: NextConfig = {
   trailingSlash: true,
   poweredByHeader: false,
   images: { unoptimized: true },
+  // Büyük JS paketleri için kaynak haritaları (hata ayıklama, Lighthouse).
+  // Kaynak kod zaten açık depoda; haritalar yalnız istenince indirilir.
+  productionBrowserSourceMaps: true,
 };
 
 export default nextConfig;

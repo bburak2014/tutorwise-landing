@@ -77,6 +77,7 @@ class Page {
     this.pending = new Map();
     this.listeners = new Map();
     this.consoleErrors = [];
+    this.consoleWarnings = [];
     this.failedRequests = [];
     socket.on("message", (data) => {
       const msg = JSON.parse(data.toString());
@@ -93,12 +94,14 @@ class Page {
       this.consoleErrors.push(p.exceptionDetails?.exception?.description ?? p.exceptionDetails?.text),
     );
     this.on("Runtime.consoleAPICalled", (p) => {
-      if (p.type === "error")
-        this.consoleErrors.push(p.args.map((a) => a.value ?? a.description).join(" "));
+      const text = p.args.map((a) => a.value ?? a.description).join(" ");
+      if (p.type === "error") this.consoleErrors.push(text);
+      if (p.type === "warning") this.consoleWarnings.push(text);
     });
     // CSP ihlalleri ve ağ hataları tarayıcı günlüğüne düşer.
     this.on("Log.entryAdded", ({ entry }) => {
       if (entry.level === "error") this.consoleErrors.push(`[${entry.source}] ${entry.text}`);
+      if (entry.level === "warning") this.consoleWarnings.push(`[${entry.source}] ${entry.text}`);
     });
     this.on("Network.responseReceived", (p) => {
       if (p.response.status >= 400)

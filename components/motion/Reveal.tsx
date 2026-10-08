@@ -13,7 +13,7 @@ gsap.registerPlugin(useGSAP, ScrollTrigger, SplitText);
  *  - [data-split] başlıklar kelime kelime (Çince/Japoncada harf harf) açılır.
  *  Hareket azaltma açıksa hiçbiri çalışmaz, metin olduğu gibi görünür. */
 export function Reveal() {
-  useGSAP(() => {
+  useGSAP((_, contextSafe) => {
     const root = document.documentElement;
     if (prefersReducedMotion()) {
       root.classList.add("motion-done");
@@ -29,8 +29,11 @@ export function Reveal() {
         gsap.to(batch, { autoAlpha: 1, y: 0, duration: 1.1, ease: "expo.out", stagger: 0.08 }),
     });
 
+    // Başlıklar görünüme yaklaşınca bölünür: hepsini açılışta bölmek
+    // satırları ölçtüğü için ana iş parçacığını uzun süre meşgul ediyordu.
     const cjk = /^(zh|ja)/.test(root.lang);
-    for (const heading of gsap.utils.toArray<HTMLElement>("[data-split]")) {
+    const safe = contextSafe ?? (<T,>(fn: T) => fn);
+    const split = safe((heading: HTMLElement) => {
       SplitText.create(heading, {
         type: cjk ? "chars" : "words,lines",
         mask: cjk ? undefined : "lines",
@@ -45,7 +48,19 @@ export function Reveal() {
             scrollTrigger: { trigger: heading, start: "top 85%", once: true },
           }),
       });
-    }
+    });
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          observer.unobserve(entry.target);
+          split(entry.target as HTMLElement);
+        }
+      },
+      { rootMargin: "0px 0px 60% 0px" },
+    );
+    for (const heading of gsap.utils.toArray<HTMLElement>("[data-split]")) observer.observe(heading);
+    return () => observer.disconnect();
   });
   return null;
 }

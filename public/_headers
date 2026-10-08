@@ -1,9 +1,11 @@
 # Statik barındırıcı (Cloudflare Pages / Netlify) için başlıklar. Next'in
 # statik çıktısı headers ayarını uygulamaz; bu dosya out/ köküne kopyalanır.
 # Next satır içi betik yazdığı için script-src 'unsafe-inline' gerekir; sitede
-# kullanıcı girdisi yoktur.
+# kullanıcı girdisi yoktur. Cloudflare Web Analytics betiği (Cloudflare'in
+# HTML'e eklediği beacon.min.js) ve raporladığı adres izinlidir; analitik
+# panelden kapatılırsa bu iki kaynak çıkarılabilir.
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://cloudflareinsights.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
   Referrer-Policy: strict-origin-when-cross-origin

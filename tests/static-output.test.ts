@@ -2,7 +2,7 @@
 // OUT_DIR ile başka bir klasör verilebilir (boş klasörde testler kırmızı olmalı).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import vm from "node:vm";
 import { content } from "../content/index.ts";
@@ -78,3 +78,24 @@ for (const locale of locales) {
     assert.deepEqual(missing, []);
   });
 }
+
+test("large JavaScript chunks ship with source maps", () => {
+  const dir = path.join(out, "_next/static/chunks");
+  // Next'in eski tarayıcılar için hazır gönderdiği polyfill (noModule) haritasızdır;
+  // modern tarayıcılar onu hiç indirmez.
+  const legacy = new Set(
+    [...read("tr/index.html").matchAll(/<script src="\/_next\/static\/chunks\/([^"]+)" noModule/g)].map((m) => m[1]),
+  );
+  const large = readdirSync(dir).filter(
+    (name) =>
+      name.endsWith(".js") && !legacy.has(name) && statSync(path.join(dir, name)).size > 100_000,
+  );
+  assert.ok(large.length > 0, "büyük paket bulunamadı");
+  // Turbopack haritaya ayrı bir ad verir; paket onu sondaki satırda söyler.
+  const missing = large.filter((name) => {
+    const tail = readFileSync(path.join(dir, name), "utf8").slice(-300);
+    const map = /sourceMappingURL=(\S+)/.exec(tail)?.[1];
+    return !map || !existsSync(path.join(dir, map));
+  });
+  assert.deepEqual(missing, []);
+});

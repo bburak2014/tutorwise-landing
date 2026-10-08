@@ -6,8 +6,12 @@ import { NeutralToneMapping } from "three";
 import { Background } from "./Background.tsx";
 import { Book } from "./Book.tsx";
 import { CameraRig } from "./CameraRig.tsx";
+import { installThreeConsole } from "./console.ts";
 import { PairDevices, ScreensProvider } from "./Device.tsx";
 import { Director } from "./Director.tsx";
+// R3F tuvali saatini kurmadan önce: bilinen tek uyarıyı süz (three/console.ts).
+installThreeConsole();
+
 // Efekt paketi (postprocessing) yalnız güçlü cihazlarda indirilir.
 const Effects = lazy(() => import("./Effects.tsx").then((m) => ({ default: m.Effects })));
 import { Studio } from "./Studio.tsx";
@@ -32,7 +36,8 @@ export default function Experience({
   return (
     <Canvas
       dpr={dpr}
-      shadows={effects}
+      // PCFSoftShadowMap three r186'da kaldırıldı; R3F'nin varsayılanı o, PCF açıkça seçilir.
+      shadows={effects ? "percentage" : false}
       gl={{ antialias: true, powerPreference: "high-performance" }}
       camera={{ position: [0, 0, 8], fov: 30, near: 0.1, far: 60 }}
       onCreated={({ gl }) => {
