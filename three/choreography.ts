@@ -165,3 +165,37 @@ export function deviceAt(beat: number): { screen: ScreenId | null; kind: DeviceK
   if (!spec) return { screen: null, kind: "tablet", rise: 0 };
   return { ...spec, rise: 1 - smoothstep(0.2, 0.45, Math.abs(u - n)) };
 }
+
+/** Sinematik açılış: kitap derinlikten (geride, aşağıda, dönük, küçük) gelir
+ *  ve pozuna oturur; sırt ışığı başta kapalıdır. t: 0 → 1 (GSAP sürer). */
+export function introPose(target: Pose, t: number): Pose {
+  const e = 1 - Math.pow(1 - clamp01(t), 4);
+  const from: Pose = {
+    ...target,
+    z: target.z - 6,
+    y: target.y - 0.6,
+    ry: target.ry - 1.1,
+    rx: target.rx + 0.5,
+    scale: target.scale * 0.7,
+    glow: 0,
+  };
+  if (e >= 1) return target;
+  return lerpPose(from, target, e);
+}
+
+/** Sırt ışığının açılıştaki yanışı: kapalı, iki kısa titreme, sonra açık. */
+export function spineGlow(t: number) {
+  const x = clamp01(t);
+  if (x < 0.42) return 0;
+  if (x < 0.47) return 0.65;
+  if (x < 0.52) return 0.15;
+  if (x < 0.56) return 0.9;
+  if (x < 0.6) return 0.35;
+  return smoothstep(0.6, 0.85, x) * 0.65 + 0.35;
+}
+
+/** Sabitlenmiş "kitap okuma" bölümünde gösterilen özellik: kaydırma
+ *  ilerlemesi (0–1) iki özelliğin tam ortasından geçince değişir. */
+export function chapterIndex(progress: number, count: number) {
+  return Math.min(count - 1, Math.max(0, Math.floor(progress * (count - 1) + 0.5)));
+}

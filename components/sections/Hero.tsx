@@ -10,7 +10,7 @@ export async function Hero() {
     <section
       id="top"
       data-scene="hero"
-      className="relative flex min-h-svh items-center pt-[var(--header-h)]"
+      className="scene relative flex min-h-svh items-center pt-[var(--header-h)]"
     >
       <div className="shell grid w-full lg:grid-cols-12">
         <div className="lg:col-span-8 xl:col-span-7">

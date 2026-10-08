@@ -119,6 +119,8 @@ export function Book() {
   const leftBlock = useRef<Mesh>(null);
   const spine = useRef<Group>(null);
   const pointer = useRef(new Vector2());
+  const strip = useRef<Mesh>(null);
+  const ribbonMesh = useRef<Mesh>(null);
   const [coverNormal, coverRough, paperNormal, paperRough] = useTexture(SURFACE_MAPS);
 
   const assets = useMemo(() => {
@@ -239,6 +241,9 @@ export function Book() {
     leftBlock.current.scale.z = Math.max(0.001, leftAmount);
     leftBlock.current.position.z = (BLOCK * leftAmount) / 2;
     spine.current.visible = pose.cover < 0.5;
+    if (strip.current) (strip.current.material as MeshStandardMaterial).emissiveIntensity = 2.4 * frame.spine;
+    if (ribbonMesh.current)
+      (ribbonMesh.current.material as MeshStandardMaterial).emissiveIntensity = 0.35 * Math.min(1, frame.spine);
 
     assets.leaves.forEach(({ mesh, bones }, i) => {
       const turn = pageTurn(pose.flip, i);
@@ -303,12 +308,12 @@ export function Book() {
         >
           <boxGeometry args={[COVER_D, COVER_H, Z_COVER_CLOSED + COVER_D / 2 + COVER_D]} />
         </mesh>
-        <mesh position={[-COVER_D - 0.001, 0, Z_TOP / 2]} material={assets.glow}>
+        <mesh ref={strip} position={[-COVER_D - 0.001, 0, Z_TOP / 2]} material={assets.glow}>
           <boxGeometry args={[0.004, COVER_H * 0.9, 0.012]} />
         </mesh>
       </group>
       {/* Ayraç kurdelesi */}
-      <mesh position={[0.11, -PAGE_H / 2 + 0.02, Z_TOP + 0.004]} material={assets.ribbon}>
+      <mesh ref={ribbonMesh} position={[0.11, -PAGE_H / 2 + 0.02, Z_TOP + 0.004]} material={assets.ribbon}>
         <planeGeometry args={[0.045, 0.62]} />
       </mesh>
       <ChapterDevices />

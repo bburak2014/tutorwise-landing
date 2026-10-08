@@ -3,6 +3,7 @@ import { PerformanceMonitor } from "@react-three/drei";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Suspense, lazy, useRef, useState } from "react";
 import { NeutralToneMapping } from "three";
+import { Atmosphere } from "./Atmosphere.tsx";
 import { Background } from "./Background.tsx";
 import { Book } from "./Book.tsx";
 import { CameraRig } from "./CameraRig.tsx";
@@ -55,6 +56,8 @@ export default function Experience({
       />
       <Director />
       <Background />
+      {/* Uzaktaki zemin ve geri çekilen kitap arka planın orta tonunda erir. */}
+      <fog attach="fog" args={["#0b1030", 9, 24]} />
       <Studio shadows={effects} hdri={tier === "high"} />
       <CameraRig />
       {/* Kitabın dokuları yüklenene kadar tuval görünmez; sonra belirir. */}
@@ -63,6 +66,7 @@ export default function Experience({
           <Book />
           <PairDevices />
         </ScreensProvider>
+        <Atmosphere tier={tier} />
         <ReadySignal onReady={onReady} />
       </Suspense>
       {effects && (

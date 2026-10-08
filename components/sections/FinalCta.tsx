@@ -8,7 +8,7 @@ export async function FinalCta() {
     <section
       data-scene="final"
       aria-labelledby="final-title"
-      className="relative flex min-h-[80svh] items-center py-32"
+      className="scene relative flex min-h-[80svh] items-center py-32"
     >
       <div className="shell flex w-full flex-col items-center text-center">
         <h2

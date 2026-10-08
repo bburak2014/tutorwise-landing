@@ -9,7 +9,7 @@ export async function About() {
     <section
       id="about"
       data-scene="about"
-      className="relative flex min-h-svh items-center py-32"
+      className="scene relative flex min-h-svh items-center py-32"
     >
       <div className="shell grid w-full lg:grid-cols-12">
         <div className="flex flex-col gap-8 lg:col-span-6">

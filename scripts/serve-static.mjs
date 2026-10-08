@@ -72,7 +72,11 @@ createServer((req, res) => {
     "content-type": types[path.extname(body)] ?? "application/octet-stream",
     "cache-control": "no-store",
   });
-  createReadStream(body).pipe(res);
+  // Derleme sırasında out/ silinip yeniden yazılabilir: okunamayan dosya
+  // sunucuyu düşürmesin.
+  createReadStream(body)
+    .on("error", () => res.end())
+    .pipe(res);
 }).listen(port, "127.0.0.1", () => {
   console.log(`serving ${root} at http://127.0.0.1:${port}`);
 });

@@ -262,16 +262,18 @@ body {
    altından başlar. Metin kaydırılınca kitabın üstünden geçer; arkasındaki
    koyu geçiş zemini okunurluğu korur. Katmansız: Tailwind boşluklarını geçer. */
 @media (max-width: 1023px) {
-  [data-scene] {
+  .scene {
     align-items: flex-start;
     padding-top: 44svh;
   }
-  [data-scene] > .shell,
+  .scene > .shell,
+  .chapter > div,
   #features > .shell:first-child {
     position: relative;
     isolation: isolate;
   }
-  [data-scene] > .shell::before,
+  .scene > .shell::before,
+  .chapter > div::before,
   #features > .shell:first-child::before {
     content: "";
     position: absolute;
@@ -328,6 +330,13 @@ body {
     transform: translateY(26px);
     filter: blur(10px);
   }
+}
+
+/* "Kitap okuma" bölümünün arkasındaki büyük, yalnız konturlu numara. */
+.chapter-numeral {
+  color: transparent;
+  -webkit-text-stroke: 1px rgb(142 160 255 / 0.11);
+  letter-spacing: -0.04em;
 }
 
 /* Poster çekimi: yalnız sahne görünür. */

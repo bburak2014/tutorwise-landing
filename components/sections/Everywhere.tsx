@@ -10,7 +10,7 @@ export async function Everywhere() {
       id="download"
       data-scene="everywhere"
       aria-labelledby="download-title"
-      className="relative flex min-h-svh items-center py-32"
+      className="scene relative flex min-h-svh items-center py-32"
     >
       <div className="shell flex w-full flex-col items-center text-center">
         <p className="eyebrow">{everywhere.label}</p>

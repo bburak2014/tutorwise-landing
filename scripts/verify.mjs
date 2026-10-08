@@ -9,6 +9,7 @@
 //     yalnız izin verilen öğelerde; LCP öğesi açılış başlığı
 // Önce: pnpm build && pnpm serve. Kullanım: node scripts/verify.mjs [adres]
 import { writeFileSync, mkdirSync } from "node:fs";
+import sharp from "sharp";
 import { launchChrome, wait } from "./lib/cdp.mjs";
 import { locales } from "../i18n/locales.ts";
 
@@ -61,7 +62,7 @@ try {
       const r = await withPage(chrome, async (page) => {
         await page.viewport(layout.width, layout.height, { dpr: layout.dpr, mobile: layout.mobile });
         await page.goto(`${origin}/${locale}/`, { settle: 6000 });
-        const tops = await page.eval(`[...document.querySelectorAll("[data-scene]")].map((el) => el.getBoundingClientRect().top + scrollY)`);
+        const tops = await page.eval(`[...document.querySelectorAll("[data-scene]")].filter((el) => el.getClientRects().length > 0).map((el) => el.getBoundingClientRect().top + scrollY)`);
         for (const top of tops) {
           await page.eval(`scrollTo(0, ${top})`);
           await wait(500);
@@ -77,7 +78,7 @@ try {
           canvas: Boolean(document.querySelector(".stage canvas")),
           canvasOpacity: document.querySelector(".stage canvas")?.parentElement?.parentElement?.style.opacity ?? null,
           overflow: document.documentElement.scrollWidth - innerWidth,
-          scenes: document.querySelectorAll("[data-scene]").length,
+          scenes: [...document.querySelectorAll("[data-scene]")].filter((el) => el.getClientRects().length > 0).length,
         })`);
         return { ...state, errors: page.consoleErrors, warnings: page.consoleWarnings, failed: page.failedRequests };
       });
@@ -107,6 +108,20 @@ try {
     });
     check(`LCP is the hero title (${layout.name})`, lcp.inHeroTitle, lcp);
   }
+
+  // 3D sahne gerçekten çiziliyor mu? (Tuvalin varlığı yetmez: bir NaN tüm
+  // kareyi karartabilir.) Kitabın durduğu bölgenin rengi lacivert olmalı.
+  const scene = await withPage(chrome, async (page) => {
+    await page.viewport(1440, 900, { dpr: 1, mobile: false });
+    await page.goto(`${origin}/tr/`, { settle: 9000 });
+    const { data } = await page.send("Page.captureScreenshot", { format: "png" });
+    const stats = await sharp(Buffer.from(data, "base64"))
+      .extract({ left: 900, top: 150, width: 500, height: 600 })
+      .stats();
+    const [r, g, b] = stats.channels.map((c) => Math.round(c.mean));
+    return { r, g, b, spread: Math.round(stats.channels[2].stdev) };
+  });
+  check("3D scene renders (not black)", scene.b >= 25 && scene.spread >= 8, scene);
 
   // CSP, Cloudflare'in sayfaya eklediği analitik betiğine izin vermeli.
   const analytics = await withPage(chrome, async (page) => {

@@ -14,7 +14,7 @@ export async function Audiences() {
       id="audiences"
       data-scene="audiences"
       aria-labelledby="audiences-title"
-      className="relative flex min-h-svh items-center py-32"
+      className="scene relative flex min-h-svh items-center py-32"
     >
       <div className="shell w-full">
         <div className="max-w-3xl">

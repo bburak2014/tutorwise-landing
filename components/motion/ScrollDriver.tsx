@@ -30,7 +30,11 @@ export function ScrollDriver() {
     let lastBottom = 0;
 
     const measure = () => {
-      const scenes = [...document.querySelectorAll<HTMLElement>("[data-scene]")];
+      // Sahne işaretleri düzene göre değişir (geniş ekranda sabit sahnenin
+      // içinde, dar ekranda bölümlerin başında); yalnız görünenler sayılır.
+      const scenes = [...document.querySelectorAll<HTMLElement>("[data-scene]")].filter(
+        (el) => el.getClientRects().length > 0,
+      );
       tops = scenes.map((el) => el.getBoundingClientRect().top + window.scrollY);
       const last = scenes.at(-1);
       lastBottom = last ? last.getBoundingClientRect().bottom + window.scrollY : 0;

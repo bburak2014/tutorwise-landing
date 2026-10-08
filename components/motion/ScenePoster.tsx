@@ -21,7 +21,9 @@ export function ScenePoster() {
       },
       { rootMargin: "-50% 0px -50% 0px" },
     );
-    document.querySelectorAll("[data-scene]").forEach((el) => observer.observe(el));
+    document.querySelectorAll("[data-scene]").forEach((el) => {
+      if (el.getClientRects().length > 0) observer.observe(el);
+    });
     return () => {
       media.removeEventListener("change", onMedia);
       observer.disconnect();
