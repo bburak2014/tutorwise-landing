@@ -11,5 +11,8 @@
     "html_handling": "auto-trailing-slash",
     // Bulunamayan adreste out/404.html
     "not_found_handling": "404-page"
-  }
+  },
+  // Ana dal dışındaki dallar `npx wrangler preview` ile önizleme adresine
+  // yüklenir; bu komut boş da olsa bir "previews" bloğu ister.
+  "previews": {}
 }
