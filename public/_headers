@@ -1,0 +1,24 @@
+# Statik barındırıcı (Cloudflare Pages / Netlify) için başlıklar. Next'in
+# statik çıktısı headers ayarını uygulamaz; bu dosya out/ köküne kopyalanır.
+# Next satır içi betik yazdığı için script-src 'unsafe-inline' gerekir; sitede
+# kullanıcı girdisi yoktur.
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Cross-Origin-Opener-Policy: same-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+
+/_next/static/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/3d/*
+  Cache-Control: public, max-age=2592000
+
+/screens/*
+  Cache-Control: public, max-age=86400
+
+/poster/*
+  Cache-Control: public, max-age=86400

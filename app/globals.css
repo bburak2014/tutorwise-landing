@@ -1,0 +1,342 @@
+@import "tailwindcss";
+
+/* ==================================================================
+   Tutorwise landing belirteçleri. Renkler uygulamanın koyu temasından
+   (derslik: apps/web/app/globals.css): lacivert zemin, marka mavisi ve
+   tek vurgu olarak fosforlu sarı. Kontrast hedefi: metin 4.5:1 (AA).
+   ================================================================== */
+@theme inline {
+  --color-deep: #060918;
+  --color-night: #0b1030;
+  --color-navy: #141c4d;
+  --color-navy-soft: #1c2350;
+  --color-ink: #eef0fb;
+  --color-text: #c9cdea;
+  --color-muted: #9ea5cb;
+  --color-brand: #8ea0ff;
+  --color-brand-strong: #a9b7ff;
+  --color-marker: #ffd84a;
+  --color-marker-ink: #221b00;
+  --color-line: rgb(255 255 255 / 0.09);
+  --color-line-strong: rgb(255 255 255 / 0.16);
+  --color-glass: rgb(255 255 255 / 0.035);
+
+  --font-sans: var(--font-onest), var(--cjk), system-ui, sans-serif;
+  --font-display: var(--font-bricolage), var(--font-onest), var(--cjk),
+    system-ui, sans-serif;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Çince ve Japonca için ek yazı tipi indirilmez; sistemdeki bölgesel CJK
+   yazı tipleri kullanılır. Latin harfler yine Onest'ten gelir. */
+:root {
+  color-scheme: dark;
+  --cjk: system-ui;
+  --header-h: 72px;
+}
+:root:lang(zh) {
+  --cjk: "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Noto Sans CJK SC",
+    "Microsoft YaHei", sans-serif;
+}
+:root:lang(ja) {
+  --cjk: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP",
+    "Noto Sans CJK JP", "Yu Gothic", Meiryo, sans-serif;
+}
+
+html {
+  background: var(--color-deep);
+  scroll-padding-top: var(--header-h);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  min-height: 100svh;
+  background: var(--color-deep);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--color-marker);
+  color: var(--color-marker-ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-marker);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+@layer components {
+  /* Sabit sahne: 3D tuval ve onun yedeği (renk geçişleri) burada durur. */
+  .stage {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(60% 50% at 78% 38%, rgb(35 56 168 / 0.32), transparent 70%),
+      radial-gradient(40% 35% at 18% 85%, rgb(35 56 168 / 0.14), transparent 70%),
+      linear-gradient(180deg, #070a1f 0%, #0b1030 55%, #060918 100%);
+  }
+  .stage::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    opacity: 0.05;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .shell {
+    width: 100%;
+    max-width: 1240px;
+    margin-inline: auto;
+    padding-inline: 16px;
+  }
+  @media (min-width: 640px) {
+    .shell {
+      padding-inline: 32px;
+    }
+  }
+
+  .display {
+    font-family: var(--font-display);
+    font-weight: 600;
+    color: var(--color-ink);
+    letter-spacing: -0.022em;
+    line-height: 1;
+    font-variation-settings: "opsz" 72;
+    text-wrap: balance;
+  }
+  .heading {
+    font-family: var(--font-display);
+    font-weight: 600;
+    color: var(--color-ink);
+    letter-spacing: -0.018em;
+    line-height: 1.08;
+    text-wrap: balance;
+  }
+  /* Uzun bileşik kelimeler (Wochenzusammenfassung) dar ekranda taşmasın:
+     sayfanın lang değerine göre heceden bölünür. */
+  .display,
+  .heading {
+    hyphens: auto;
+    overflow-wrap: break-word;
+  }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+  :lang(zh) .eyebrow,
+  :lang(ja) .eyebrow {
+    letter-spacing: 0.06em;
+  }
+  .eyebrow::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--color-marker);
+    box-shadow: 0 0 12px rgb(255 216 74 / 0.6);
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    min-height: 48px;
+    padding: 0 1.4rem;
+    border-radius: 999px;
+    font-size: 0.975rem;
+    font-weight: 600;
+    white-space: nowrap;
+    transition:
+      transform 0.5s var(--ease-out-expo),
+      background-color 0.3s ease,
+      border-color 0.3s ease,
+      color 0.3s ease;
+  }
+  .btn:active {
+    transform: scale(0.98);
+  }
+  .btn-primary {
+    background: var(--color-marker);
+    color: var(--color-marker-ink);
+    box-shadow:
+      0 0 0 1px rgb(255 216 74 / 0.4),
+      0 10px 40px -10px rgb(255 216 74 / 0.45);
+  }
+  .btn-primary:hover {
+    background: #ffe27a;
+  }
+  .btn-ghost {
+    color: var(--color-ink);
+    background: var(--color-glass);
+    border: 1px solid var(--color-line-strong);
+    backdrop-filter: blur(12px);
+  }
+  .btn-ghost:hover {
+    border-color: rgb(255 255 255 / 0.32);
+    background: rgb(255 255 255 / 0.06);
+  }
+
+  .glass {
+    background: linear-gradient(180deg, rgb(255 255 255 / 0.05), rgb(255 255 255 / 0.02));
+    border: 1px solid var(--color-line);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+
+  .link-arrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    color: var(--color-ink);
+  }
+  .link-arrow svg {
+    transition: transform 0.5s var(--ease-out-expo);
+  }
+  .link-arrow:hover svg {
+    transform: translateX(4px);
+  }
+
+  /* Gerçek bilgi bekleyen metin: sayfada açıkça görünsün. */
+  .placeholder {
+    display: inline;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+    padding: 0.1em 0.35em;
+    border-radius: 6px;
+    background: rgb(255 216 74 / 0.08);
+    outline: 1px dashed rgb(255 216 74 / 0.5);
+    color: var(--color-marker);
+  }
+}
+
+/* Çince ve Japonca başlıklar: harf aralığı yok, satırlar ifade sınırından
+   bölünür (Japoncada Chrome auto-phrase; Çincede her karakter arası
+   geçerli bir bölme yeridir), boyut biraz küçük.
+   Katmansız: Tailwind'in boyut sınıflarını geçer. */
+:lang(zh) .display,
+:lang(ja) .display,
+:lang(zh) .heading,
+:lang(ja) .heading {
+  letter-spacing: 0;
+  line-height: 1.22;
+  hyphens: manual;
+  line-break: strict;
+}
+@supports (word-break: auto-phrase) {
+  :lang(ja) .display,
+  :lang(ja) .heading,
+  :lang(ja) p,
+  :lang(ja) li {
+    word-break: auto-phrase;
+  }
+}
+:lang(zh) h1.display,
+:lang(ja) h1.display {
+  font-size: clamp(2.3rem, 5vw, 4.4rem);
+}
+:lang(zh) h2.display,
+:lang(ja) h2.display {
+  font-size: clamp(2rem, 4.2vw, 3.8rem);
+}
+
+/* Dar ekran: 3D sahne ekranın üst kısmında durur; her sahnenin metni onun
+   altından başlar. Metin kaydırılınca kitabın üstünden geçer; arkasındaki
+   koyu geçiş zemini okunurluğu korur. Katmansız: Tailwind boşluklarını geçer. */
+@media (max-width: 1023px) {
+  [data-scene] {
+    align-items: flex-start;
+    padding-top: 44svh;
+  }
+  [data-scene] > .shell,
+  #features > .shell:first-child {
+    position: relative;
+    isolation: isolate;
+  }
+  [data-scene] > .shell::before,
+  #features > .shell:first-child::before {
+    content: "";
+    position: absolute;
+    inset: -3.5rem 0 -2.5rem;
+    z-index: -1;
+    pointer-events: none;
+    background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(6 9 24 / 0.86) 3.5rem,
+      rgb(6 9 24 / 0.86) calc(100% - 2.5rem),
+      transparent
+    );
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Açılış metni CSS ile gelir: ilk boyamada başlar, JavaScript'i beklemez.
+   Sıra, öğenin --i değerinden. Hareket azaltmada süre sıfırlanır. */
+#top [data-reveal] {
+  animation: hero-in 1.3s var(--ease-out-expo) both;
+  animation-delay: calc(var(--i, 0) * 90ms + 80ms);
+}
+@media (prefers-reduced-motion: reduce) {
+  #top [data-reveal] {
+    animation: none;
+  }
+}
+@keyframes hero-in {
+  from {
+    opacity: 0;
+    transform: translateY(26px);
+    filter: blur(10px);
+  }
+}
+
+/* Poster çekimi: yalnız sahne görünür. */
+.poster-mode header,
+.poster-mode main,
+.poster-mode footer {
+  visibility: hidden;
+}
+
+@keyframes poster-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes scrollcue {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(200%);
+  }
+}

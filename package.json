@@ -1,0 +1,51 @@
+{
+  "name": "tutorwise-landing",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "packageManager": "pnpm@11.25.0",
+  "scripts": {
+    "dev": "next dev -p 3200",
+    "build": "next build",
+    "serve": "node scripts/serve-static.mjs",
+    "typecheck": "next typegen && tsc --noEmit",
+    "lint": "eslint .",
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "verify": "node scripts/verify.mjs",
+    "capture:screens": "node scripts/capture-screens.mjs --app ../derslik",
+    "capture:posters": "node scripts/capture-posters.mjs",
+    "capture:og": "node scripts/capture-og.mjs",
+    "assets:optimize": "node scripts/optimize-3d.mjs"
+  },
+  "dependencies": {
+    "@gsap/react": "2.1.2",
+    "@react-three/drei": "10.7.9",
+    "@react-three/fiber": "9.8.1",
+    "@react-three/postprocessing": "3.1.3",
+    "gsap": "3.15.0",
+    "maath": "0.10.8",
+    "next": "16.3.8",
+    "postprocessing": "6.39.5",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "three": "0.186.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/node": "22.19.19",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@types/three": "0.186.0",
+    "@types/ws": "8.18.2",
+    "eslint": "9.39.4",
+    "eslint-config-next": "16.3.8",
+    "eslint-plugin-sonarjs": "4.2.1",
+    "sharp": "0.35.5",
+    "tailwindcss": "4.3.3",
+    "typescript": "5.9.3",
+    "ws": "8.22.0"
+  }
+}
