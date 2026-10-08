@@ -1,0 +1,15 @@
+// Cloudflare Workers'ta statik site: `pnpm build` çıktısı (out/) olduğu gibi
+// yayınlanır, sunucu kodu yok. Bu dosya varken `wrangler deploy` Next.js'i
+// sunuculu uygulama sanıp OpenNext kurulumuna girişmez. out/_headers
+// (güvenlik başlıkları, önbellek) Workers tarafından okunur.
+{
+  "name": "tutorwise-landing",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./out",
+    // /tr → /tr/ ve /tr/ → tr/index.html (next.config.ts: trailingSlash)
+    "html_handling": "auto-trailing-slash",
+    // Bulunamayan adreste out/404.html
+    "not_found_handling": "404-page"
+  }
+}

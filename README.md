@@ -68,6 +68,16 @@ yazıları "Tutorwise" ile değiştirilir.
 
 ## Yayın
 
-`out/` klasörü herhangi bir statik barındırıcıya konur. `public/_headers` (Cloudflare Pages /
-Netlify biçimi) güvenlik başlıklarını ve önbelleği tanımlar; başka bir barındırıcıda aynı
-başlıklar onun ayarına taşınmalı.
+Cloudflare Workers (statik dosyalar), GitHub'a bağlı: `main`'e her gönderim yayına çıkar.
+
+| Ayar | Değer |
+|---|---|
+| Build command | `pnpm build` |
+| Deploy command | `npx wrangler deploy` (varsayılan) |
+
+`wrangler.jsonc` wrangler'a `out/` klasörünü statik site olarak yayınlamasını söyler; bu dosya
+olmazsa wrangler projeyi sunuculu Next.js sanıp OpenNext kurulumuna girişir ve derleme düşer.
+`public/_headers` (güvenlik başlıkları, önbellek) Workers tarafından okunur.
+
+Yerelde Cloudflare ortamında denemek için: `pnpm build`, sonra
+`pnpm dlx --allow-build=workerd wrangler dev` ve `pnpm verify http://127.0.0.1:8787`.
