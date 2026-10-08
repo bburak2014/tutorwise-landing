@@ -43,7 +43,7 @@ export const es: Content = {
   },
   chapters: {
     label: "Lo que puedes hacer",
-    title: "Todas tus clases particulares, en un solo libro.",
+    title: "Todas tus clases particulares, en un solo lugar.",
     plan: {
       title: "Planificación y calendario",
       body: "Ve tu semana de un vistazo. Comparte tu disponibilidad y deja que tus alumnos reserven a la hora que les venga bien. Programa la recuperación de las clases canceladas desde el mismo calendario.",

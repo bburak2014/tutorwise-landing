@@ -43,7 +43,7 @@ export const en: Content = {
   },
   chapters: {
     label: "What you can do",
-    title: "All of your tutoring, in one book.",
+    title: "All of your tutoring, in one place.",
     plan: {
       title: "Lesson plan and calendar",
       body: "See your week at a glance. Share your availability and let students book a time that suits them. Schedule makeup lessons for cancelled ones from the same calendar.",

@@ -43,7 +43,7 @@ export const fr: Content = {
   },
   chapters: {
     label: "Ce que vous pouvez faire",
-    title: "Tous vos cours particuliers, dans un seul livre.",
+    title: "Tous vos cours particuliers, au même endroit.",
     plan: {
       title: "Planning et calendrier",
       body: "Voyez votre semaine d'un coup d'œil. Partagez vos disponibilités, vos élèves réservent un créneau qui leur convient. Planifiez les rattrapages des cours annulés dans le même calendrier.",

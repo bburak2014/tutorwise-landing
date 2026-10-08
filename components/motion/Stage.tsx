@@ -16,7 +16,7 @@ type Mode = "idle" | "on-demand";
 const INTRO_KEY = "tutorwise-intro";
 
 /** Açılış oturumda bir kez oynar: dil değiştirince ya da logoya basınca
- *  sayfa yeniden yüklenir ama kitap yeniden süzülerek gelmez. */
+ *  sayfa yeniden yüklenir ama logo yeniden kurulmaz. */
 function firstVisitThisSession(): boolean {
   try {
     if (sessionStorage.getItem(INTRO_KEY)) return false;
@@ -29,7 +29,7 @@ function firstVisitThisSession(): boolean {
 
 /** Sabit sahne.
  *  - Güçlü cihaz: 3D tarayıcı boşa çıkınca yüklenir; tuval belirince
- *    sinematik açılış oynar (kitap derinlikten gelir, sırt ışığı yanar).
+ *    açılış oynar (logo bir toz bulutundan parçacıklarla kurulur).
  *    Açılış oturumda bir kez oynar.
  *  - Dokunmatik/zayıf cihaz: sahnenin poster görüntüsü hemen görünür, 3D
  *    ilk etkileşimde yüklenir ve posterle aynı pozdan devam eder (açılış

@@ -43,7 +43,7 @@ export const de: Content = {
   },
   chapters: {
     label: "Was Sie tun können",
-    title: "Ihre ganze Nachhilfe, in einem Buch.",
+    title: "Ihre ganze Nachhilfe, an einem Ort.",
     plan: {
       title: "Stundenplanung und Kalender",
       body: "Sehen Sie Ihre Woche auf einen Blick. Teilen Sie Ihre Verfügbarkeit, und Ihre Schüler buchen einen passenden Termin. Nachholstunden für ausgefallene Stunden planen Sie im selben Kalender.",

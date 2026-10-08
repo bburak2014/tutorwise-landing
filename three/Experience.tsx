@@ -13,11 +13,11 @@ import {
 } from "three";
 import { Atmosphere } from "./Atmosphere.tsx";
 import { Background } from "./Background.tsx";
-import { Book } from "./Book.tsx";
 import { CameraRig } from "./CameraRig.tsx";
 import { installThreeConsole } from "./console.ts";
-import { PairDevices, ScreensProvider } from "./Device.tsx";
+import { ScreensProvider } from "./Device.tsx";
 import { Director } from "./Director.tsx";
+import { Scenes } from "./Scenes.tsx";
 import { Studio } from "./Studio.tsx";
 import { story } from "./story.ts";
 // R3F tuvali saatini kurmadan önce: bilinen tek uyarıyı süz (three/console.ts).
@@ -146,8 +146,6 @@ export default function Experience({
     <Canvas
       frameloop="demand"
       dpr={[1, dpr]}
-      // PCFSoftShadowMap three r186'da kaldırıldı; R3F'nin varsayılanı o, PCF açıkça seçilir.
-      shadows={effects ? "percentage" : false}
       gl={{ antialias: true, powerPreference: "high-performance" }}
       camera={{ position: [0, 0, 8], fov: 30, near: 0.1, far: 60 }}
       onCreated={({ gl }) => {
@@ -159,15 +157,14 @@ export default function Experience({
       <FrameScheduler onDecline={decline} />
       <Director />
       <Background />
-      {/* Uzaktaki sahne ve geri çekilen kitap arka planın orta tonunda erir. */}
+      {/* Uzaktaki nesneler arka planın orta tonunda erir. */}
       <fog attach="fog" args={["#0b1030", 9, 24]} />
-      <Studio shadows={effects} hdri={tier === "high"} />
       <CameraRig />
-      {/* Kitabın dokuları yüklenene kadar tuval görünmez; sonra belirir. */}
+      {/* Stüdyo ışığı, ekran görüntüleri ve nesneler hazır olana kadar tuval görünmez; sonra belirir. */}
       <Suspense fallback={null}>
+        <Studio hdri={tier === "high"} />
         <ScreensProvider>
-          <Book />
-          <PairDevices />
+          <Scenes particles={tier === "high" ? 2600 : 1400} />
         </ScreensProvider>
         <Atmosphere tier={tier} />
         <Warmup onReady={onReady} effects={effects} />

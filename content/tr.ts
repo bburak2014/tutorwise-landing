@@ -46,7 +46,7 @@ export const tr = {
   },
   chapters: {
     label: "Neler yapabilirsiniz",
-    title: "Özel dersin bütün düzeni, tek bir kitapta.",
+    title: "Özel dersin bütün düzeni, tek bir yerde.",
     plan: {
       title: "Ders planı ve takvim",
       body: "Haftanızı tek bakışta görün. Müsaitliğinizi paylaşın, öğrencileriniz uygun saatten ders ayarlasın. İptal edilen derslerin telafisini aynı takvimden planlayın.",

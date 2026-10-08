@@ -14,7 +14,7 @@ export function prefersReducedMotion(): boolean {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-/** Dar ekranda (telefon, dik tablet) kitap üstte ortalanır, metin altta akar. */
+/** Dar ekranda (telefon, dik tablet) 3D nesne üstte ortalanır, metin altta akar. */
 export function layoutFor(width: number, height: number): Layout {
   return width < 1024 || width / height < 1 ? "narrow" : "wide";
 }

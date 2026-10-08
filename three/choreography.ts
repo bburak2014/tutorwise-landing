@@ -1,10 +1,13 @@
-/* 3D hikâyenin saf hesapları: kaydırma → "beat", beat → kitap pozu, sayfa
-   dönüşü ve cihaz yükselişi. React ve three.js'e bağlı değil; test edilir.
+/* 3D hikâyenin saf hesapları: kaydırma → "beat", beat → hangi sahnenin
+   nesnesi görünüyor, iki nesne arasındaki parçacık geçişi, kamera. React ve
+   three.js'e bağlı değil; test edilir.
 
    Beat: sayfadaki her sahnenin (data-scene) sırası. Bir sahnenin üst kenarı
    görünüm alanının ortasına geldiğinde beat o sahnenin sırasıdır; bir
    sonrakinin üst kenarı ortaya gelene kadar kesirli olarak artar. Sahnenin
    metni ekranda ortalandığında beat ≈ sıra + 0.5 ("okuma anı"). */
+
+import type { CameraMove } from "./camera.ts";
 
 export const scenes = [
   "hero",
@@ -21,104 +24,34 @@ export const scenes = [
 export type Scene = (typeof scenes)[number];
 export type Layout = "wide" | "narrow";
 
-export type Pose = {
-  /** Kitabın konumu, dönüşü (radyan) ve ölçeği. */
-  x: number;
-  y: number;
-  z: number;
-  rx: number;
-  ry: number;
-  rz: number;
-  scale: number;
-  /** Ön kapağın açıklığı: 0 kapalı, 1 tamamen açık. */
-  cover: number;
-  /** Dönmüş sayfa sayısı (kesirli: dönmekte olan sayfa). */
-  flip: number;
-  /** Sayfaların yelpaze gibi açılması. */
-  fan: number;
-  /** Kitabın parlaklığı / öne çıkması (geri çekilince azalır). */
-  glow: number;
-  /** "Her yerde" sahnesinde telefon ve tabletin iki yanda görünmesi. */
-  pair: number;
-  /** Kamera: kitaba yaklaşma (1 = yerinde), kitabın çevresinde dönme ve
-   *  yukarıdan bakma (radyan). Kitap ekranda aynı yerde kalır (camera.ts). */
-  dolly: number;
-  orbit: number;
-  tilt: number;
-};
+/** Sahnelerin nesneleri. Açılış, Biz kimiz ve kapanış logodur; her özellik
+ *  kendi nesnesine dönüşür. */
+export const compositions = [
+  "logo",
+  "calendar",
+  "board",
+  "homework",
+  "credits",
+  "summary",
+  "roles",
+  "devices",
+] as const;
+export type Composition = (typeof compositions)[number];
+export const sceneComposition: Composition[] = [
+  "logo",
+  "logo",
+  "calendar",
+  "board",
+  "homework",
+  "credits",
+  "summary",
+  "roles",
+  "devices",
+  "logo",
+];
 
 export type ScreenId = "calendar" | "board" | "homework" | "packages" | "summary";
 export type DeviceKind = "tablet" | "phone";
-
-const pose = (p: Partial<Pose>): Pose => ({
-  x: 0,
-  y: 0,
-  z: 0,
-  rx: 0,
-  ry: 0,
-  rz: 0,
-  scale: 1,
-  cover: 1,
-  flip: 0,
-  fan: 0,
-  glow: 1,
-  pair: 0,
-  dolly: 1,
-  orbit: 0,
-  tilt: 0,
-  ...p,
-});
-
-/** Özellik bölümü: kitap yerinde açık durur; kamera her bölümde kitabın
- *  çevresinde biraz döner ve yaklaşır (sırayla sağdan, soldan). */
-const chapter = (flip: number, ry: number, orbit: number): Pose =>
-  pose({ x: 1.72, y: -0.58, rx: -0.98, ry, rz: 0.02, scale: 0.92, flip, dolly: 0.9, orbit, tilt: 0.05 });
-
-const chapterNarrow = (flip: number, orbit: number): Pose =>
-  pose({ y: 1.12, rx: -0.9, scale: 0.5, flip, dolly: 0.96, orbit });
-
-/** Her sahnenin kitap pozu; sıra `scenes` ile aynı. Geniş ekranda metin
- *  soldadır, kitap sağda; ortalanmış metinli sahnelerde kitap kenara çekilir. */
-export const keys: Record<Layout, Pose[]> = {
-  wide: [
-    // Açılış: kapalı kitap, sırtı (sarı şerit) kameraya dönük.
-    pose({ x: 1.55, y: -0.1, rx: 0.3, ry: 0.5, rz: 0.1, scale: 1.05, cover: 0 }),
-    // Biz kimiz: kapak açılır; kamera yaklaşıp hafifçe döner.
-    pose({ x: 1.62, y: -0.2, z: 0.25, rx: -0.5, ry: -0.2, rz: 0.04, dolly: 0.94, orbit: 0.16, tilt: 0.04 }),
-    chapter(1, -0.12, 0.14),
-    chapter(2, -0.18, -0.12),
-    chapter(3, -0.1, 0.16),
-    chapter(4, -0.2, -0.1),
-    chapter(5, -0.12, 0.12),
-    // Kimler için: sağ üstte, sayfalar yelpaze; kartlar camın arkasından görür.
-    pose({ x: 2.35, y: 0.85, z: -2.4, rx: -0.5, ry: -0.35, scale: 0.95, flip: 5, fan: 1, glow: 0.6 }),
-    // Her yerde: kitap sağdan çıkar, sahneyi cihazlar taşır.
-    pose({ x: 7.5, y: 0.6, z: -3.2, rx: -0.6, ry: -0.6, scale: 0.9, flip: 5, fan: 0.4, glow: 0.4, pair: 1 }),
-    // Kapanış: kitap kapanıp sağdan geri gelir, açılış pozuna benzer.
-    pose({ x: 2.7, y: -0.05, z: -0.6, rx: 0.3, ry: 0.5, rz: 0.08, scale: 0.78, cover: 0 }),
-  ],
-  narrow: [
-    pose({ x: 0.15, y: 1.05, rx: 0.3, ry: 0.5, rz: 0.1, scale: 0.6, cover: 0 }),
-    pose({ y: 1.1, rx: -0.55, ry: -0.15, scale: 0.52, dolly: 0.97, orbit: 0.08 }),
-    chapterNarrow(1, 0.07),
-    chapterNarrow(2, -0.06),
-    chapterNarrow(3, 0.07),
-    chapterNarrow(4, -0.05),
-    chapterNarrow(5, 0.06),
-    pose({ y: 1.25, z: -2, rx: -0.55, scale: 0.6, flip: 5, fan: 1, glow: 0.55 }),
-    pose({ x: 2.6, y: 1.25, z: -2.6, rx: -0.6, ry: -0.6, scale: 0.6, flip: 5, fan: 0.4, glow: 0.4, pair: 1 }),
-    pose({ y: 1.15, z: -1, rx: 0.3, ry: 0.5, rz: 0.08, scale: 0.48, cover: 0 }),
-  ],
-};
-
-/** Her özellik bölümünde sayfadan yükselen cihaz ve ekranı. */
-const devices: Partial<Record<Scene, { screen: ScreenId; kind: DeviceKind }>> = {
-  "chapter-plan": { screen: "calendar", kind: "tablet" },
-  "chapter-live": { screen: "board", kind: "tablet" },
-  "chapter-homework": { screen: "homework", kind: "phone" },
-  "chapter-packages": { screen: "packages", kind: "tablet" },
-  "chapter-family": { screen: "summary", kind: "phone" },
-};
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 
@@ -140,74 +73,99 @@ export function beatFromScroll(center: number, tops: readonly number[], lastBott
   return 0;
 }
 
-/** Sıradaki sayfanın dönüş oranı: sayfalar birbiri ardına döner. */
-export function pageTurn(flip: number, index: number) {
-  return clamp01(flip - index);
+/** Beat'te sahne: `from` ile `to` (= from + 1) arasındaki geçişin ilerlemesi
+ *  `t` (0: from, 1: to). Her sahne okuma anının çevresinde sabit kalır;
+ *  geçiş iki okuma anının ortasında olur. */
+export function stageAt(beat: number) {
+  const last = scenes.length - 1;
+  const u = Math.min(last, Math.max(0, beat - 0.5));
+  const from = Math.min(last - 1, Math.floor(u));
+  return { from, to: from + 1, t: smoothstep(0.2, 0.8, u - from) };
 }
 
-function lerpPose(a: Pose, b: Pose, t: number): Pose {
-  const out = { ...a };
-  for (const key of Object.keys(a) as (keyof Pose)[]) out[key] = a[key] + (b[key] - a[key]) * t;
+/** Nesnelerin görünürlüğü (0–1). Geçişte çıkan nesne ilk %40'ta çözülür,
+ *  gelen son %40'ta belirir; arada parçacıklar uçar (morphAt). Aynı nesne
+ *  iki sahnede de varsa (açılış → Biz kimiz: logo) hiç çözülmez. */
+export function presence(beat: number): Record<Composition, number> {
+  const { from, to, t } = stageAt(beat);
+  const out = Object.fromEntries(compositions.map((c) => [c, 0])) as Record<Composition, number>;
+  const a = sceneComposition[from];
+  const b = sceneComposition[to];
+  if (a === b) {
+    out[a] = 1;
+    return out;
+  }
+  out[a] = 1 - smoothstep(0, 0.4, t);
+  out[b] = smoothstep(0.6, 1, t);
   return out;
 }
 
-/** Beat'teki kitap pozu. Her sahnenin pozu okuma anının çevresinde sabit
- *  durur; iki okuma anı arasındaki ortada yumuşakça bir sonrakine geçer. */
-export function poseAt(beat: number, layout: Layout): Pose {
-  const list = keys[layout];
-  const u = beat - 0.5;
-  if (u <= 0) return list[0];
-  if (u >= list.length - 1) return list[list.length - 1];
-  const k = Math.floor(u);
-  const t = smoothstep(0.2, 0.8, u - k);
-  if (t === 0) return list[k];
-  if (t === 1) return list[k + 1];
-  return lerpPose(list[k], list[k + 1], t);
+/** İki farklı nesne arasındaki parçacık geçişi; geçiş yoksa null. */
+export function morphAt(beat: number): { from: Composition; to: Composition; t: number } | null {
+  const { from, to, t } = stageAt(beat);
+  const a = sceneComposition[from];
+  const b = sceneComposition[to];
+  if (a === b || t <= 0 || t >= 1) return null;
+  return { from: a, to: b, t };
 }
 
-/** Beat'teki cihaz: en yakın sahne bir özellik bölümüyse onun ekranı. Cihaz
- *  okuma anında tamamen yükselir, iki bölüm arasında sayfaya iner; ekran
- *  değişimi cihaz görünmezken olur. */
-export function deviceAt(beat: number): { screen: ScreenId | null; kind: DeviceKind; rise: number } {
-  const u = beat - 0.5;
-  const n = Math.min(scenes.length - 1, Math.max(0, Math.round(u)));
-  const spec = devices[scenes[n]];
-  if (!spec) return { screen: null, kind: "tablet", rise: 0 };
-  return { ...spec, rise: 1 - smoothstep(0.2, 0.45, Math.abs(u - n)) };
+/** Sahnenin oturma oranı: okuma anında 1, iki sahnenin ortasına doğru 0.
+ *  Nesnelerin iç hareketleri (tabletten fırlayan kartlar…) bunu izler. */
+export function focusAt(beat: number, scene: number) {
+  return 1 - smoothstep(0.2, 0.45, Math.abs(beat - 0.5 - scene));
 }
 
-/** Sinematik açılış: kitap derinlikten (geride, aşağıda, dönük, küçük) gelir
- *  ve pozuna oturur; sırt ışığı başta kapalıdır. t: 0 → 1 (GSAP sürer). */
-export function introPose(target: Pose, t: number): Pose {
-  const e = 1 - Math.pow(1 - clamp01(t), 4);
-  const from: Pose = {
-    ...target,
-    z: target.z - 6,
-    y: target.y - 0.6,
-    ry: target.ry - 1.1,
-    rx: target.rx + 0.5,
-    scale: target.scale * 0.7,
-    glow: 0,
+/** Logonun katmanlarının ayrılması: açılışta birleşik, Biz kimiz'de
+ *  katmanlar ayrık, kapanışta yine birleşik. */
+export function logoOpen(beat: number) {
+  const { from, t } = stageAt(beat);
+  if (from === 0) return t;
+  if (from === 1) return 1;
+  return 0;
+}
+
+const cam = (dolly: number, orbit: number, tilt = 0.04): CameraMove => ({ dolly, orbit, tilt });
+
+/** Her sahnede kameranın nesneye yaklaşması ve çevresinde dönmesi. Nesne
+ *  ekranda aynı yerde kalır (camera.ts); "Her yerde" sahnesinde kamera durur. */
+export const cameraKeys: Record<Layout, CameraMove[]> = {
+  wide: [
+    cam(1, 0, 0.02),
+    cam(0.92, 0.24),
+    cam(0.9, 0.16),
+    cam(0.88, -0.14),
+    cam(0.9, 0.18),
+    cam(0.9, -0.12),
+    cam(0.9, 0.14),
+    cam(0.98, -0.06),
+    cam(1, 0, 0),
+    cam(0.96, -0.1),
+  ],
+  narrow: [
+    cam(1, 0, 0),
+    cam(0.96, 0.12),
+    cam(0.96, 0.08),
+    cam(0.95, -0.07),
+    cam(0.96, 0.08),
+    cam(0.96, -0.06),
+    cam(0.96, 0.07),
+    cam(1, 0, 0),
+    cam(1, 0, 0),
+    cam(0.98, -0.05),
+  ],
+};
+
+export function cameraAt(beat: number, layout: Layout): CameraMove {
+  const { from, to, t } = stageAt(beat);
+  const a = cameraKeys[layout][from];
+  const b = cameraKeys[layout][to];
+  if (t === 0) return a;
+  if (t === 1) return b;
+  return {
+    dolly: a.dolly + (b.dolly - a.dolly) * t,
+    orbit: a.orbit + (b.orbit - a.orbit) * t,
+    tilt: a.tilt + (b.tilt - a.tilt) * t,
   };
-  if (e >= 1) return target;
-  return lerpPose(from, target, e);
-}
-
-/** Sırt ışığının açılıştaki yanışı: kapalı, iki kısa titreme, sonra açık. */
-export function spineGlow(t: number) {
-  const x = clamp01(t);
-  if (x < 0.42) return 0;
-  if (x < 0.47) return 0.65;
-  if (x < 0.52) return 0.15;
-  if (x < 0.56) return 0.9;
-  if (x < 0.6) return 0.35;
-  return smoothstep(0.6, 0.85, x) * 0.65 + 0.35;
-}
-
-/** Sabitlenmiş "kitap okuma" bölümünde gösterilen özellik: kaydırma
- *  ilerlemesi (0–1) iki özelliğin tam ortasından geçince değişir. */
-export function chapterIndex(progress: number, count: number) {
-  return Math.min(count - 1, Math.max(0, Math.floor(progress * (count - 1) + 0.5)));
 }
 
 /** Kaydırmanın tek adımda bir sahneden fazla atlaması (bağlantı, End tuşu,
@@ -217,26 +175,21 @@ export function isCut(previous: number, next: number) {
   return Math.abs(next - previous) > 1.2;
 }
 
-/** Kapak açılırken üstteki üç sayfanın havalanıp geri düşmesi (k = 0 en
- *  üstteki yaprak): kapağı biraz izler, sonra yerine oturur. Açı, radyan;
- *  alttaki yapraklar kımıldamaz. */
-export function riffle(cover: number, k: number) {
-  if (k > 2) return 0;
-  const start = 0.22 + 0.1 * k;
-  const t = smoothstep(start, start + 0.55, cover);
-  if (t <= 0 || t >= 1) return 0;
-  return Math.sin(Math.PI * t) * (0.95 - 0.3 * k);
+/** Sabitlenmiş özellikler bölümünde gösterilen özellik: kaydırma
+ *  ilerlemesi (0–1) iki özelliğin tam ortasından geçince değişir. */
+export function chapterIndex(progress: number, count: number) {
+  return Math.min(count - 1, Math.max(0, Math.floor(progress * (count - 1) + 0.5)));
 }
 
-/** Bir açılım etkin olduktan sonra sayfadaki çizimlerin ilerlemesi (0–1).
- *  `since` null ise açılım henüz etkin değil: çizimler görünmez. */
+/** Bir çizim başladıktan sonraki ilerlemesi (0–1). `since` null ise çizim
+ *  henüz başlamadı: hiçbir şey görünmez. */
 export function inkProgress(now: number, since: number | null, duration: number) {
   if (since === null) return 0;
   return clamp01((now - since) / duration);
 }
 
-/** Cihaz ekranının yukarıdan aşağı satır satır belirmesi (0–1): cihaz
- *  sayfadan yükselirken ikinci yarıda başlar, yerine oturunca tamamlanır. */
+/** Cihaz ekranının yukarıdan aşağı satır satır belirmesi (0–1): nesne
+ *  oturmaya yaklaşırken başlar, oturunca tamamlanır. */
 export function screenReveal(rise: number) {
   return smoothstep(0.35, 0.95, rise);
 }

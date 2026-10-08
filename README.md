@@ -3,13 +3,16 @@
 [tutorwise.academy](https://tutorwise.academy) için statik tanıtım sitesi. Next.js 16
 (`output: "export"`), React Three Fiber, Drei ve GSAP. 7 dil: tr, en, de, fr, es, zh, ja.
 
-Sayfa kaydırıldıkça açılan bir kitap anlatır: kitap karanlıktan ışığa doğru süzülerek
-gelir, kapak açılır (üstteki sayfalar havalanıp geri düşer), her özellik bölümünde bir
-sayfa kıvrılarak döner ve sayfadaki çizimler kendiliğinden çizilir; sayfadan bir ışık
-halkasıyla, o dildeki gerçek uygulama ekranını gösteren bir tablet ya da telefon yükselir
-ve ekranı satır satır açılır. Kamera her bölümde kitabın çevresinde süzülür. Geniş ekranda
-beş özellik tek, sabitlenmiş bir sahnede okunur (soldaki 01–05 çizgisi); sayfa sonunda
-kitap kapanır, sırtı nabız gibi parlar.
+3D sahne kaydırdıkça bir nesneden ötekine dönüşür. Açılışta Tutorwise Academy logosu bir
+toz bulutundan parçacıklarla kurulur; Biz kimiz'de katmanlarına ayrılır. Her özelliğin
+kendi nesnesi var ve hepsinde o dildeki gerçek uygulama ekranı satır satır açılır:
+tabletten fırlayan ders kartları (plan), cam tahtada kendiliğinden çizen kalem (canlı
+ders), yelpazelenen PDF sayfaları ve video (ödev), düşen ders hakkı paraları ve dolan
+halka (tahsilat), yükselen grafik ve bildirimler (haftalık özet). Ardından üç rolün
+madalyonları, metnin iki yanında cihazlar ve kapanışta kepi havaya atılan logo. Geçişte
+eski nesne ışıltılı kenarlarla çözülür, parçacıklar uçup yenisini kurar; kamera her
+sahnede nesnenin çevresinde süzülür. Geniş ekranda beş özellik tek, sabitlenmiş bir
+sahnede okunur (soldaki 01–05 çizgisi).
 
 ## Başlatma
 
@@ -44,11 +47,11 @@ pnpm e2e          # ziyaretçi gibi: bağlantılar, menü, bölüm çizgisi, iml
 | Bağlantılar (uygulama, mağazalar, gizlilik) | `lib/site.ts` → `links` (şimdilik hepsi `#`). |
 | İletişim e-postası (alt bilgi, bütün dillerde) | `lib/site.ts` → `email`. |
 | Dil çerezinin alan adı | `lib/site.ts` → `cookieDomain` (örn. `.tutorwise.academy`, uygulamayla paylaşmak için). |
-| Kitabın her bölümdeki pozu | `three/choreography.ts` → `keys.wide` / `keys.narrow`. |
-| Sayfa görselleri (yazısız) ve çizilme sırası | `three/pageArt.ts` (`inkLayers`: çizim + zaman haritası). |
-| Sayfaların kıvrımı, kitabın ölçüleri | `three/bookShape.ts`, blok geometrisi `three/pageBlock.ts`. |
-| Kameranın her sahnedeki yaklaşma/dönmesi | `three/choreography.ts` → `dolly`, `orbit`, `tilt`; hesap `three/camera.ts`. |
-| Açılış, sırt ışığı, bölüm geçişi (saf fonksiyonlar) | `three/choreography.ts` → `introPose`, `spineGlow`, `chapterIndex`. |
+| Hangi sahnede hangi nesne, geçişler (saf fonksiyonlar) | `three/choreography.ts` → `sceneComposition`, `stageAt`, `presence`, `morphAt`. |
+| Nesneler | `three/scenes/` (`Logo.tsx`, `Features.tsx`, `Closing.tsx`); yüzlerindeki çizimler `art.ts`, tahta çizimi `boardArt.ts`. |
+| Nesnelerin ekrandaki yeri | `three/Scenes.tsx` → `STAGE`. |
+| Kameranın her sahnedeki yaklaşma/dönmesi | `three/choreography.ts` → `cameraKeys`; hesap `three/camera.ts`. |
+| Çözülme ve parçacık geçişi | `three/dissolve.ts`, `three/Morph.tsx`, `three/sample.ts`. |
 | Işık huzmesi, toz | `three/Atmosphere.tsx`. |
 
 Dil listesi, eşleme kuralları ve bayraklar ana uygulamadan (derslik deposu,

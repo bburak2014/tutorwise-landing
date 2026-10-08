@@ -11,8 +11,8 @@ gsap.registerPlugin(useGSAP, ScrollTrigger);
 
 export type ChapterText = { key: string; title: string; body: string; points: readonly string[] };
 
-/** "Kitap okuma": geniş ekranda beş özellik tek, sabitlenmiş bir sahnede
- *  anlatılır. Kaydırdıkça 3D'de sayfa döner, soldaki metin maskeli bir
+/** Özellikler: geniş ekranda beş özellik tek, sabitlenmiş bir sahnede
+ *  anlatılır. Kaydırdıkça 3D'de nesne bir sonrakine dönüşür, soldaki metin maskeli bir
  *  geçişle değişir, ilerleme çizgisi dolar. Sahnenin yüksekliği beş ekran;
  *  her özelliğin başında görünmez bir sahne işareti (data-scene) var, 3D
  *  hikâye bunlardan beslenir. Dar ekranda bölümler alt alta akar ve her

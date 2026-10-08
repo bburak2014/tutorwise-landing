@@ -11,6 +11,7 @@ import {
   type Mesh,
 } from "three";
 import { frame } from "./Director.tsx";
+import { STAGE } from "./Scenes.tsx";
 import { story } from "./story.ts";
 
 /* Stüdyo atmosferi: üstten kitaba düşen yumuşak bir ışık huzmesi ve havada
@@ -70,12 +71,13 @@ function Beam() {
     if (!mesh.current) return;
     const narrow = story.layout === "narrow";
     // Huzme kitabı izler ama yavaşça; dar ekranda üstte ortada.
-    const x = narrow ? 0 : frame.pose.x * 0.9;
+    const x = STAGE[story.layout].x * 0.9;
     mesh.current.position.x += (x - mesh.current.position.x) * 0.04;
     mesh.current.position.y = narrow ? 2.6 : 1.7;
     const { uniforms } = mesh.current.material as ShaderMaterial;
     uniforms.uTime.value = frame.time;
-    uniforms.uStrength.value = 0.32 * Math.min(1, frame.spine) * frame.pose.glow;
+    // Huzme baştan yanar: sahne karanlıktan aydınlığa geçmez.
+    uniforms.uStrength.value = 0.32;
   });
 
   return (
@@ -91,7 +93,7 @@ function Dust({ count }: Readonly<{ count: number }>) {
   useFrame(() => {
     if (!group.current) return;
     const narrow = story.layout === "narrow";
-    group.current.position.set(narrow ? 0 : frame.pose.x * 0.6, narrow ? 1.2 : 0.2, 0);
+    group.current.position.set(STAGE[story.layout].x * 0.6, narrow ? 1.2 : 0.2, 0);
   });
   return (
     <group ref={group}>

@@ -2,21 +2,23 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   beatFromScroll,
+  cameraAt,
+  cameraKeys,
   chapterIndex,
+  compositions,
+  focusAt,
   inkProgress,
   isCut,
-  riffle,
-  screenReveal,
-  deviceAt,
-  introPose,
-  keys,
-  pageTurn,
-  poseAt,
+  logoOpen,
+  morphAt,
+  presence,
+  sceneComposition,
   scenes,
-  spineGlow,
+  screenReveal,
+  stageAt,
 } from "../three/choreography.ts";
 
-const near = (a: number, b: number) => Math.abs(a - b) < 1e-6;
+const near = (a: number, b: number, eps = 1e-6) => Math.abs(a - b) < eps;
 
 test("beatFromScroll measures progress from a section's top to the next one's", () => {
   const tops = [0, 900, 1800];
@@ -37,78 +39,79 @@ test("beatFromScroll treats a gap between sections as part of the earlier one", 
   assert.ok(near(beatFromScroll(1050, [0, 1200], 2100), 1050 / 1200));
 });
 
-test("pageTurn turns pages one after another", () => {
-  assert.ok(near(pageTurn(2.5, 0), 1));
-  assert.ok(near(pageTurn(2.5, 2), 0.5));
-  assert.ok(near(pageTurn(2.5, 3), 0));
+test("every scene has a composition, and each composition is used", () => {
+  assert.equal(sceneComposition.length, scenes.length);
+  for (const c of compositions) assert.ok(sceneComposition.includes(c), c);
+  assert.equal(sceneComposition[0], "logo");
+  assert.equal(sceneComposition.at(-1), "logo");
 });
 
-test("there is one keyframe per scene in both layouts", () => {
-  assert.equal(keys.wide.length, scenes.length);
-  assert.equal(keys.narrow.length, scenes.length);
+test("stageAt holds a scene around its reading point and moves to the next between them", () => {
+  assert.deepEqual(stageAt(2.5), { from: 2, to: 3, t: 0 });
+  assert.deepEqual(stageAt(2.65), { from: 2, to: 3, t: 0 });
+  assert.ok(near(stageAt(3).t, 0.5));
+  assert.deepEqual(stageAt(3.4), { from: 2, to: 3, t: 1 });
+  assert.deepEqual(stageAt(0), { from: 0, to: 1, t: 0 });
+  assert.deepEqual(stageAt(scenes.length + 1), { from: scenes.length - 2, to: scenes.length - 1, t: 1 });
 });
 
-test("poseAt holds each scene's keyframe around its reading point", () => {
-  assert.deepEqual(poseAt(0.5, "wide"), keys.wide[0]);
-  assert.deepEqual(poseAt(0.65, "wide"), keys.wide[0]);
-  assert.deepEqual(poseAt(2.5, "wide"), keys.wide[2]);
-  assert.deepEqual(poseAt(4.4, "narrow"), keys.narrow[4]);
+test("presence: the outgoing object dissolves first, the incoming one appears last", () => {
+  // plan (calendar) → live (board)
+  assert.equal(presence(2.5).calendar, 1);
+  assert.equal(presence(2.5).board, 0);
+  const middle = presence(3);
+  assert.equal(middle.calendar, 0);
+  assert.equal(middle.board, 0);
+  assert.equal(presence(3.4).board, 1);
+  // only one object at a reading point
+  for (let s = 0; s < scenes.length; s++) {
+    const p = presence(s + 0.5);
+    assert.deepEqual(
+      compositions.filter((c) => p[c] > 0),
+      [sceneComposition[s]],
+      `scene ${s}`,
+    );
+  }
 });
 
-test("poseAt clamps before the first and after the last reading point", () => {
-  assert.deepEqual(poseAt(0, "wide"), keys.wide[0]);
-  assert.deepEqual(poseAt(scenes.length, "wide"), keys.wide.at(-1));
+test("presence keeps the logo whole between the opening and the about scene", () => {
+  for (const beat of [0.5, 0.8, 1, 1.2, 1.5]) assert.equal(presence(beat).logo, 1, `beat ${beat}`);
 });
 
-test("poseAt is halfway between two scenes at their boundary", () => {
-  const a = keys.wide[0];
-  const b = keys.wide[1];
-  const mid = poseAt(1, "wide");
-  assert.ok(near(mid.cover, (a.cover + b.cover) / 2));
-  assert.ok(near(mid.x, (a.x + b.x) / 2));
+test("morphAt runs particles only between two different objects", () => {
+  assert.equal(morphAt(1), null, "logo → logo has no particles");
+  assert.equal(morphAt(2.5), null, "nothing moves at a reading point");
+  const m = morphAt(3);
+  assert.ok(m && m.from === "calendar" && m.to === "board" && near(m.t, 0.5));
 });
 
-test("the cover opens for the story, pages turn per chapter and close at the end", () => {
-  const at = (scene: (typeof scenes)[number]) => poseAt(scenes.indexOf(scene) + 0.5, "wide");
-  assert.equal(at("hero").cover, 0);
-  assert.equal(at("about").cover, 1);
-  assert.equal(at("chapter-plan").flip, 1);
-  assert.equal(at("chapter-family").flip, 5);
-  assert.equal(at("final").cover, 0);
-  assert.equal(at("final").flip, 0);
+test("focusAt is 1 at a scene's reading point and 0 halfway to the next", () => {
+  assert.equal(focusAt(4.5, 4), 1);
+  assert.equal(focusAt(5, 4), 0);
+  assert.equal(focusAt(4.5, 5), 0);
 });
 
-test("deviceAt shows the chapter's screen fully risen at its reading point", () => {
-  assert.deepEqual(deviceAt(2.5), { screen: "calendar", kind: "tablet", rise: 1 });
-  assert.deepEqual(deviceAt(4.5), { screen: "homework", kind: "phone", rise: 1 });
+test("logoOpen opens the logo layers in the about scene and closes them for the finale", () => {
+  assert.equal(logoOpen(0.5), 0);
+  assert.equal(logoOpen(1.5), 1);
+  assert.ok(logoOpen(1) > 0 && logoOpen(1) < 1);
+  assert.equal(logoOpen(scenes.length - 0.5), 0);
 });
 
-test("deviceAt hides the device between chapters and outside them", () => {
-  assert.ok(near(deviceAt(3).rise, 0));
-  assert.ok(near(deviceAt(1.5).rise, 0));
-  assert.equal(deviceAt(1.5).screen, null);
+test("cameraAt follows each scene's camera; the everywhere scene keeps the camera still", () => {
+  assert.equal(cameraKeys.wide.length, scenes.length);
+  assert.equal(cameraKeys.narrow.length, scenes.length);
+  assert.deepEqual(cameraAt(8.5, "wide"), { dolly: 1, orbit: 0, tilt: 0 });
+  assert.deepEqual(cameraAt(2.5, "wide"), cameraKeys.wide[2]);
+  const halfway = cameraAt(3, "wide");
+  assert.ok(near(halfway.orbit, (cameraKeys.wide[2].orbit + cameraKeys.wide[3].orbit) / 2));
 });
 
-test("introPose starts far back with the spine light off and lands on the pose", () => {
-  const target = keys.wide[0];
-  const start = introPose(target, 0);
-  assert.ok(start.z < target.z - 3);
-  assert.equal(start.glow, 0);
-  assert.deepEqual(introPose(target, 1), target);
-});
-
-test("introPose moves steadily towards the pose", () => {
-  const target = keys.wide[0];
-  const zs = [0, 0.25, 0.5, 0.75, 1].map((t) => introPose(target, t).z);
-  for (let i = 1; i < zs.length; i++) assert.ok(zs[i] >= zs[i - 1]);
-});
-
-test("spineGlow is off, flickers on, then stays on", () => {
-  assert.equal(spineGlow(0), 0);
-  assert.equal(spineGlow(1), 1);
-  const samples = Array.from({ length: 101 }, (_, i) => spineGlow(i / 100));
-  assert.ok(samples.every((v) => v >= 0 && v <= 1));
-  assert.ok(samples.some((v, i) => i > 0 && v < samples[i - 1]), "no flicker");
+test("isCut: a jump of more than one scene in one scroll step is a cut", () => {
+  assert.equal(isCut(0.5, 7.3), true);
+  assert.equal(isCut(8.3, 1.2), true);
+  assert.equal(isCut(2.5, 3.5), false);
+  assert.equal(isCut(3.1, 3.25), false);
 });
 
 test("chapterIndex switches halfway between two chapters", () => {
@@ -123,29 +126,7 @@ test("chapterIndex clamps outside the pinned range", () => {
   assert.equal(chapterIndex(1.3, 5), 4);
 });
 
-test("isCut: a jump of more than one scene in one scroll step is a cut", () => {
-  // Bağlantı ya da End tuşu: sayfa bir adımda birkaç sahne atlar.
-  assert.equal(isCut(0.5, 7.3), true);
-  assert.equal(isCut(8.3, 1.2), true);
-  // Bölüm çizgisinde komşu özelliğe geçiş: sayfa dönüşü görünsün.
-  assert.equal(isCut(2.5, 3.5), false);
-  // Sıradan tekerlek ve dokunmatik kaydırma.
-  assert.equal(isCut(3.1, 3.25), false);
-});
-
-test("riffle: the top pages lift while the cover opens and settle back", () => {
-  for (const k of [0, 1, 2]) {
-    assert.equal(riffle(0, k), 0);
-    assert.equal(riffle(1, k), 0);
-    const peak = Math.max(...Array.from({ length: 101 }, (_, i) => riffle(i / 100, k)));
-    assert.ok(peak > 0.1, `leaf ${k} lifts`);
-  }
-  // Üstteki sayfa en çok kalkar; alttakiler daha az.
-  const peak = (k: number) => Math.max(...Array.from({ length: 101 }, (_, i) => riffle(i / 100, k)));
-  assert.ok(peak(0) > peak(1) && peak(1) > peak(2));
-});
-
-test("inkProgress draws from 0 to 1 after the spread becomes active", () => {
+test("inkProgress draws from 0 to 1 after the drawing starts", () => {
   assert.equal(inkProgress(1000, null, 1600), 0);
   assert.equal(inkProgress(1000, 1000, 1600), 0);
   assert.ok(inkProgress(1800, 1000, 1600) > 0.3 && inkProgress(1800, 1000, 1600) < 0.8);
@@ -161,20 +142,4 @@ test("screenReveal: the screen appears line by line in the second half of the ri
     assert.ok(screenReveal(r) >= last);
     last = screenReveal(r);
   }
-});
-
-test("chapter poses move the camera; the everywhere scene keeps it still", () => {
-  const plan = keys.wide[2];
-  assert.ok(plan.dolly < 1 || plan.orbit !== 0);
-  const everywhere = keys.wide[8];
-  assert.equal(everywhere.dolly, 1);
-  assert.equal(everywhere.orbit, 0);
-});
-
-test("riffle never bends a page down and leaves the lower pages alone", () => {
-  for (let k = 0; k < 6; k++) {
-    for (let c = 0; c <= 1.0001; c += 0.01) assert.ok(riffle(c, k) >= 0, `leaf ${k} at cover ${c}`);
-    assert.equal(riffle(1, k), 0, `leaf ${k} rests when the cover is open`);
-  }
-  for (let c = 0; c <= 1; c += 0.05) assert.equal(riffle(c, 3), 0);
 });
