@@ -332,10 +332,8 @@ export function Hero() {
     const focus = Math.max(opening, closing);
     let aside = 0;
     if (story.layout === "wide") aside = opening + closing > 0 ? closing / (opening + closing) : Number(frame.scene >= LAST - 1);
-    // Dar ekranda sahne üstte ve küçük; nesne biraz büyütülür.
-    const grow = story.layout === "narrow" ? 1.25 : 1;
     frameGroup.current?.position.set(0.95 * aside, 0.1 * aside, -0.7 * aside);
-    frameGroup.current?.scale.setScalar(grow * (1 - 0.3 * aside));
+    frameGroup.current?.scale.setScalar(1 - 0.3 * aside);
     hero.laptop.open = smoothstep(0.04, 0.38, intro);
     hero.laptop.reveal = smoothstep(0.3, 0.62, intro);
     if (laptop.current) laptop.current.position.y = -0.42 + (still ? 0 : Math.sin(t * 0.7) * 0.025);

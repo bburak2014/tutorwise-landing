@@ -19,9 +19,17 @@ export function layoutFor(width: number, height: number): Layout {
   return width < 1024 || width / height < 1 ? "narrow" : "wide";
 }
 
-/** Cihazın kaba gücü: zayıf cihazda efektler kapalı başlar, DPR düşük kalır. */
-export function startingTier(): "high" | "low" {
-  const cores = navigator.hardwareConcurrency ?? 4;
+/** Cihaz sınıfı: güçlü bilgisayar (efektler, stüdyo HDRI'si), telefon
+ *  (ekran yoğunluğunda, en fazla 2× çizim; efekt ve HDRI indirmesi yok) ya
+ *  da zayıf cihaz (1×). Telefonlar çekirdek sayısına bakılmadan telefon
+ *  sayılır: iOS çekirdek sayısını düşük bildirebilir, 1× çizim 3× ekranda
+ *  bulanık görünür. Yavaş kalan cihazda çözünürlük sonradan düşer
+ *  (Experience → FrameScheduler). */
+export type Tier = "high" | "phone" | "low";
+
+export function startingTier(): Tier {
   const coarse = window.matchMedia("(pointer: coarse)").matches;
-  return cores <= 4 || (coarse && window.innerWidth < 768) ? "low" : "high";
+  if (coarse && window.innerWidth < 768) return "phone";
+  const cores = navigator.hardwareConcurrency ?? 4;
+  return cores <= 4 ? "low" : "high";
 }
