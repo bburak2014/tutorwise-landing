@@ -24,12 +24,12 @@ export const scenes = [
 export type Scene = (typeof scenes)[number];
 export type Layout = "wide" | "narrow";
 
-/** Sahnelerin nesneleri. Açılış dizüstü bilgisayar ve çevresinde dönen ders
- *  nesneleridir; Biz kimiz ve kapanış logodur; her özellik kendi nesnesine
- *  dönüşür. */
+/** Sahnelerin nesneleri. Açılış ve kapanış dizüstü bilgisayar ve çevresinde
+ *  dönen ders nesneleridir; Biz kimiz açılan kitaptır; her özellik kendi
+ *  nesnesine dönüşür. 3D logo yoktur. */
 export const compositions = [
   "hero",
-  "logo",
+  "book",
   "calendar",
   "board",
   "homework",
@@ -41,7 +41,7 @@ export const compositions = [
 export type Composition = (typeof compositions)[number];
 export const sceneComposition: Composition[] = [
   "hero",
-  "logo",
+  "book",
   "calendar",
   "board",
   "homework",
@@ -49,7 +49,7 @@ export const sceneComposition: Composition[] = [
   "summary",
   "roles",
   "devices",
-  "logo",
+  "hero",
 ];
 
 export type ScreenId = "calendar" | "board" | "homework" | "packages" | "summary";
@@ -128,15 +128,6 @@ export function focusAt(beat: number, scene: number) {
   return 1 - smoothstep(0.2, 0.45, Math.abs(beat - 0.5 - scene));
 }
 
-/** Logonun katmanlarının ayrılması: açılışta birleşik, Biz kimiz'de
- *  katmanlar ayrık, kapanışta yine birleşik. */
-export function logoOpen(beat: number) {
-  const { from, t } = stageAt(beat);
-  if (from === 0) return t;
-  if (from === 1) return 1;
-  return 0;
-}
-
 const cam = (dolly: number, orbit: number, tilt = 0.04): CameraMove => ({ dolly, orbit, tilt });
 
 /** Her sahnede kameranın nesneye yaklaşması ve çevresinde dönmesi. Nesne
@@ -205,4 +196,20 @@ export function inkProgress(now: number, since: number | null, duration: number)
  *  oturmaya yaklaşırken başlar, oturunca tamamlanır. */
 export function screenReveal(rise: number) {
   return smoothstep(0.35, 0.95, rise);
+}
+
+/** Sıradaki sayfanın dönüş oranı: sayfalar birbiri ardına döner. */
+export function pageTurn(flip: number, index: number) {
+  return clamp01(flip - index);
+}
+
+/** Kapak açılırken üstteki üç sayfanın havalanıp geri düşmesi (k = 0 en
+ *  üstteki yaprak): kapağı biraz izler, sonra yerine oturur. Açı, radyan;
+ *  alttaki yapraklar kımıldamaz. */
+export function riffle(cover: number, k: number) {
+  if (k > 2) return 0;
+  const start = 0.22 + 0.1 * k;
+  const t = smoothstep(start, start + 0.55, cover);
+  if (t <= 0 || t >= 1) return 0;
+  return Math.sin(Math.PI * t) * (0.95 - 0.3 * k);
 }

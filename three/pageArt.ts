@@ -1,4 +1,4 @@
-/* Sayfa görselleri (ödev sahnesindeki kâğıtlar, ekran yer tutucuları): yazısız, soyut arayüz çizimleri. Her açılım
+/* Kitap sayfalarının görselleri: yazısız, soyut arayüz çizimleri. Her açılım
    bir özellik bölümünü karşılar (takvim, tahta, ödev, tahsilat, veli özeti).
    Dilden bağımsızdır; tuvalde (Canvas 2D) çizilip dokuya dönüşür.
    Ön yüzlerde cilt yeri (gutter) solda, arka yüzlerde sağdadır. */
@@ -53,33 +53,71 @@ function heading(ctx: Ctx, x: number, y: number, w: number, s: number) {
   bar(ctx, x, y + 26 * s, w * 0.6, 8 * s, soft);
 }
 
-function bookMark(ctx: Ctx, cx: number, cy: number, size: number, stroke: string, width: number) {
-  const k = size / 64;
+/** Klasik kitap süsü (logo değil): ortada iç içe iki baklava, iki yanında
+ *  ince çizgiler. */
+function ornament(ctx: Ctx, cx: number, cy: number, size: number, color: string, width: number) {
+  const r = size / 2;
   ctx.save();
-  ctx.translate(cx - 32 * k, cy - 32 * k);
-  ctx.scale(k, k);
-  ctx.strokeStyle = stroke;
-  ctx.lineWidth = width / k;
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = width;
   ctx.lineJoin = "round";
-  ctx.stroke(new Path2D("M15 18c7-2 12 0 17 4 5-4 10-6 17-4v29c-6-2-12 0-17 4-5-4-11-6-17-4Z"));
-  ctx.stroke(new Path2D("M32 22v29"));
+  const diamond = (d: number) => {
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - d);
+    ctx.lineTo(cx + d, cy);
+    ctx.lineTo(cx, cy + d);
+    ctx.lineTo(cx - d, cy);
+    ctx.closePath();
+  };
+  diamond(r * 0.32);
+  ctx.stroke();
+  diamond(r * 0.13);
+  ctx.fill();
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(cx + side * r * 0.45, cy);
+    ctx.lineTo(cx + side * r, cy);
+    ctx.stroke();
+  }
   ctx.restore();
 }
 
 type Point = [number, number];
 
-/** Noktalardan geçen tek bir çizgi. */
-function trace(ctx: Ctx, points: Point[]) {
-  ctx.beginPath();
-  ctx.moveTo(...points[0]);
-  for (const point of points.slice(1)) ctx.lineTo(...point);
-  ctx.stroke();
+/** Zaman haritası çizilirken (timeRecorder) true: çizgiler parça parça
+ *  çizilir ki her parça kendi anında belirsin. */
+const recording = (ctx: Ctx) => (ctx as Ctx & { __time?: boolean }).__time === true;
+
+/** Noktalardan geçen çizgi. Sayfada tek bir yol; zaman haritasında her
+ *  kenar `pieces` parçaya bölünür, çizgi yolu boyunca çiziliyormuş gibi belirir. */
+function trace(ctx: Ctx, points: Point[], pieces: number) {
+  if (!recording(ctx)) {
+    ctx.beginPath();
+    ctx.moveTo(...points[0]);
+    for (const point of points.slice(1)) ctx.lineTo(...point);
+    ctx.stroke();
+    return;
+  }
+  for (let i = 1; i < points.length; i++) {
+    const [x0, y0] = points[i - 1];
+    const [x1, y1] = points[i];
+    for (let k = 0; k < pieces; k++) {
+      ctx.beginPath();
+      ctx.moveTo(x0 + ((x1 - x0) * k) / pieces, y0 + ((y1 - y0) * k) / pieces);
+      ctx.lineTo(x0 + ((x1 - x0) * (k + 1)) / pieces, y0 + ((y1 - y0) * (k + 1)) / pieces);
+      ctx.stroke();
+    }
+  }
 }
 
-function traceArc(ctx: Ctx, cx: number, cy: number, r: number, from: number, to: number) {
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, from, to);
-  ctx.stroke();
+function traceArc(ctx: Ctx, cx: number, cy: number, r: number, from: number, to: number, pieces: number) {
+  const parts = recording(ctx) ? pieces : 1;
+  for (let k = 0; k < parts; k++) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, from + ((to - from) * k) / parts, from + ((to - from) * (k + 1)) / parts);
+    ctx.stroke();
+  }
 }
 
 /** Kübik Bézier eğrisinden noktalar. */
@@ -111,10 +149,11 @@ const draw: Record<PageArt, (ctx: Ctx, w: number, h: number, s: number, m: numbe
     glow.addColorStop(1, "rgba(0,0,0,0.18)");
     ctx.fillStyle = glow;
     ctx.fillRect(0, 0, w, h);
-    // Kapağın logosu artık 3D logo (three/scenes/Logo.tsx); burada yalnız kumaş.
+    // Süs burada basılmaz: kapağın üstünde ayrı, ışığı yansıtan altın varak
+    // olarak çizilir (coverMask).
   },
   title(ctx, w, h, s) {
-    bookMark(ctx, w / 2, h * 0.36, 150 * s, NAVY, 5 * s);
+    ornament(ctx, w / 2, h * 0.38, 190 * s, NAVY, 4 * s);
     bar(ctx, w * 0.3, h * 0.52, w * 0.4, 16 * s, INK);
     bar(ctx, w * 0.36, h * 0.52 + 34 * s, w * 0.28, 8 * s, soft);
     ctx.fillStyle = MARKER;
@@ -132,7 +171,7 @@ const draw: Record<PageArt, (ctx: Ctx, w: number, h: number, s: number, m: numbe
       ctx.lineTo(x + h, 0);
       ctx.stroke();
     }
-    bookMark(ctx, w / 2, h / 2, 120 * s, MARKER, 4 * s);
+    ornament(ctx, w / 2, h / 2, 170 * s, MARKER, 3.5 * s);
   },
   month(ctx, w, h, s, m) {
     heading(ctx, m, m, w * 0.45, s);
@@ -198,25 +237,26 @@ const draw: Record<PageArt, (ctx: Ctx, w: number, h: number, s: number, m: numbe
         ctx.stroke();
       }
     }
-    // Tahtadaki gibi elle çizilmiş: üçgen, açı yayı, yükseklik, fosforlu kalem ve çember.
+    // Tahtadaki gibi elle çizilir: üçgen, açı yayı, yükseklik, fosforlu
+    // kalem ve çember; her çizgi kendi yolu boyunca belirir (trace).
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
     ctx.strokeStyle = INK;
     ctx.lineWidth = 5 * s;
     const ax = w * 0.2, ay = h * 0.62, bx = w * 0.8, by = h * 0.62, cx = w * 0.42, cy = h * 0.28;
-    trace(ctx, [[ax, ay], [bx, by], [cx, cy], [ax, ay]]);
+    trace(ctx, [[ax, ay], [bx, by], [cx, cy], [ax, ay]], 8);
     ctx.strokeStyle = BRAND;
     ctx.lineWidth = 4 * s;
-    traceArc(ctx, ax, ay, 60 * s, -0.95, 0);
+    traceArc(ctx, ax, ay, 60 * s, -0.95, 0, 6);
     ctx.setLineDash([12 * s, 10 * s]);
-    trace(ctx, [[cx, cy], [cx, ay]]);
+    trace(ctx, [[cx, cy], [cx, ay]], 6);
     ctx.setLineDash([]);
     ctx.strokeStyle = "rgba(255,216,74,0.9)";
     ctx.lineWidth = 22 * s;
-    trace(ctx, bezier([w * 0.22, h * 0.78], [w * 0.4, h * 0.76], [w * 0.55, h * 0.8], [w * 0.74, h * 0.77], 12));
+    trace(ctx, bezier([w * 0.22, h * 0.78], [w * 0.4, h * 0.76], [w * 0.55, h * 0.8], [w * 0.74, h * 0.77], 12), 1);
     ctx.strokeStyle = INK;
     ctx.lineWidth = 4 * s;
-    traceArc(ctx, w * 0.72, h * 0.3, 58 * s, -Math.PI / 2, Math.PI * 1.5);
+    traceArc(ctx, w * 0.72, h * 0.3, 58 * s, -Math.PI / 2, Math.PI * 1.5, 14);
   },
   pdf(ctx, w, h, s, m) {
     heading(ctx, m, m, w * 0.6, s);
@@ -419,6 +459,155 @@ const draw: Record<PageArt, (ctx: Ctx, w: number, h: number, s: number, m: numbe
     }
   },
 };
+
+/** Zaman haritası için 2D bağlam: her dolgu ve çizgi, sırasını gösteren bir
+ *  kırmızı tonla çizilir (ilk çizilen en koyu). Renk atamaları yok sayılır;
+ *  kesik çizgi deseni de (harita tam çizgiyi kapsasın). `total` bilinmiyorsa
+ *  yalnız sayılır. */
+function timeRecorder(target: Ctx, total: number | null) {
+  let index = 0;
+  const tone = () => {
+    const t = total ? Math.min(255, 1 + Math.round(((index + 1) / total) * 254)) : 255;
+    return `rgb(${t},0,0)`;
+  };
+  const ctx = new Proxy(target, {
+    get(object, prop) {
+      if (prop === "__time") return true;
+      if (prop === "setLineDash") return () => {};
+      if (prop === "fill" || prop === "fillRect" || prop === "stroke" || prop === "strokeRect") {
+        return (...args: unknown[]) => {
+          if (prop === "fill" || prop === "fillRect") object.fillStyle = tone();
+          else object.strokeStyle = tone();
+          index += 1;
+          (object[prop] as (...a: unknown[]) => void).apply(object, args);
+        };
+      }
+      const value = Reflect.get(object, prop, object);
+      return typeof value === "function" ? value.bind(object) : value;
+    },
+    set(object, prop, value) {
+      if (prop === "fillStyle" || prop === "strokeStyle") return true;
+      return Reflect.set(object, prop, value, object);
+    },
+  });
+  return { ctx, count: () => index };
+}
+
+function pageCanvas(width: number, scale = 1) {
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(width * scale);
+  canvas.height = Math.round(width * (1.71 / 1.28) * scale);
+  return canvas;
+}
+
+function gutterShade(ctx: Ctx, gutter: "left" | "right", width: number, height: number) {
+  const inner = gutter === "left" ? 0 : width;
+  const shade = ctx.createLinearGradient(inner, 0, gutter === "left" ? width * 0.16 : width * 0.84, 0);
+  shade.addColorStop(0, "rgba(20,28,77,0.16)");
+  shade.addColorStop(1, "rgba(20,28,77,0)");
+  ctx.fillStyle = shade;
+  ctx.fillRect(0, 0, width, height);
+}
+
+/** Çizimsiz sayfa: kâğıt ve cilt yerindeki gölge. Aynı cilt yönündeki
+ *  bütün sayfalarda ortak; çizimler (inkLayers) üstüne belirir. */
+export function blankPage(gutter: "left" | "right", width: number): HTMLCanvasElement {
+  const canvas = pageCanvas(width);
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return canvas;
+  ctx.fillStyle = PAPER;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  gutterShade(ctx, gutter, canvas.width, canvas.height);
+  return canvas;
+}
+
+/** Bir sayfa yüzünün çizimleri, saydam zemin üzerinde (`ink`), ve her
+ *  parçanın ne zaman belireceği (`time`, yarım çözünürlük, kırmızı kanal:
+ *  0–1 arası sıra). Sayfa etkin olunca çizimler bu sırayla belirir. */
+export function inkLayers(art: PageArt, gutter: "left" | "right", width: number) {
+  const ink = pageCanvas(width);
+  const time = pageCanvas(width, 0.5);
+  const s = width / 640;
+  const m = 64 * s;
+  const shift = gutter === "left" ? m * 0.35 : -m * 0.35;
+  const inkCtx = ink.getContext("2d");
+  const timeCtx = time.getContext("2d");
+  if (!inkCtx || !timeCtx) return { ink, time };
+  paintArt(inkCtx, art, ink.width, ink.height, s, m, shift);
+  // Cilt gölgesi yalnız çizimlerin üstüne (kâğıt gölgesi blankPage'de).
+  inkCtx.globalCompositeOperation = "source-atop";
+  gutterShade(inkCtx, gutter, ink.width, ink.height);
+
+  // Zaman haritası: önce parçalar sayılır, sonra sıralarıyla çizilir.
+  // Zemin en son anı gösterir; çizimsiz yerlerde değeri önemsizdir.
+  const counter = timeRecorder(timeCtx, null);
+  timeCtx.save();
+  timeCtx.scale(0.5, 0.5);
+  paintArt(counter.ctx, art, ink.width, ink.height, s, m, shift);
+  timeCtx.restore();
+  const total = counter.count();
+  timeCtx.fillStyle = "rgb(255,0,0)";
+  timeCtx.fillRect(0, 0, time.width, time.height);
+  const recorder = timeRecorder(timeCtx, total);
+  timeCtx.save();
+  timeCtx.scale(0.5, 0.5);
+  paintArt(recorder.ctx, art, ink.width, ink.height, s, m, shift);
+  timeCtx.restore();
+  return { ink, time };
+}
+
+function paintArt(ctx: Ctx, art: PageArt, width: number, height: number, s: number, m: number, shift: number) {
+  ctx.save();
+  ctx.translate(shift, 0);
+  draw[art](ctx, width, height, s, m);
+  ctx.restore();
+}
+
+/** Kapaktaki yaldız (logo yok): çift çerçeve, ortada süs ve altında kısa
+ *  bir çizgi; siyah üzerine beyaz, altın varak katmanının saydamlık haritası. */
+export function coverMask(width: number): HTMLCanvasElement {
+  const canvas = pageCanvas(width);
+  const ctx = canvas.getContext("2d");
+  if (ctx) {
+    const w = canvas.width;
+    const h = canvas.height;
+    const s = width / 640;
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 3 * s;
+    ctx.strokeRect(w * 0.08, h * 0.06, w * 0.84, h * 0.88);
+    ctx.lineWidth = 1.5 * s;
+    ctx.strokeRect(w * 0.1, h * 0.075, w * 0.8, h * 0.85);
+    ornament(ctx, w * 0.5, h * 0.42, 230 * s, "#fff", 4.5 * s);
+    ctx.fillStyle = "#fff";
+    rr(ctx, w * 0.5 - 30 * s, h * 0.6, 60 * s, 4 * s, 2 * s);
+    ctx.fill();
+  }
+  return canvas;
+}
+
+/** Sayfa bloğunun kenarı: üst üste binmiş kâğıtların ince çizgileri
+ *  (v ekseni blok kalınlığı boyunca). */
+export function paperEdges(): HTMLCanvasElement {
+  const canvas = document.createElement("canvas");
+  canvas.width = 8;
+  canvas.height = 256;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return canvas;
+  ctx.fillStyle = "#ece6d7";
+  ctx.fillRect(0, 0, 8, 256);
+  let seed = 11;
+  const rand = () => {
+    seed = (seed * 16807) % 2147483647;
+    return seed / 2147483647;
+  };
+  for (let y = 0; y < 256; y += 1 + Math.floor(rand() * 3)) {
+    ctx.fillStyle = `rgba(150,138,110,${0.12 + rand() * 0.28})`;
+    ctx.fillRect(0, y, 8, 1);
+  }
+  return canvas;
+}
 
 /** Bir sayfa yüzünü tuvale çizer. `gutter`: cilt yerinin hangi kenarda olduğu. */
 export function drawPage(art: PageArt, gutter: "left" | "right", width: number): HTMLCanvasElement {
