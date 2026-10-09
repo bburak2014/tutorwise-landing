@@ -213,3 +213,20 @@ export function riffle(cover: number, k: number) {
   if (t <= 0 || t >= 1) return 0;
   return Math.sin(Math.PI * t) * (0.95 - 0.3 * k);
 }
+
+/** Kaydırma durunca sahnenin duracağı beat. Kaydırma iki sahnenin geçişinin
+ *  ortasında kaldıysa (nesneler yarı saydam ya da hiç görünmüyor) geçiş,
+ *  metnin gösterdiği yani en yakın sahnenin tam göründüğü kenara tamamlanır;
+ *  `zone` o geçişin aralığıdır: kaydırma bu aralıkta kaldıkça sahne kenarda
+ *  bekler (ScrollDriver). Geçişte değilse beat olduğu gibi kalır. */
+export function restingBeat(beat: number): { beat: number; zone: [number, number] | null } {
+  const u = beat - 0.5;
+  const k = Math.floor(u);
+  const f = u - k;
+  if (k < 0 || k >= scenes.length - 1 || f <= 0.2 || f >= 0.8) return { beat, zone: null };
+  const zone: [number, number] = [round(k + 0.7), round(k + 1.3)];
+  // Metin (ChapterStage) ortadan bir piksel önce değişir; sahne de onunla.
+  return { beat: f < 0.4995 ? zone[0] : zone[1], zone };
+}
+
+const round = (v: number) => Math.round(v * 1000) / 1000;

@@ -65,6 +65,10 @@ function following(beat: number) {
   frame.camera = cameraAt(beat, story.layout);
 }
 
+// Uçtan uca testler (scripts/e2e.mjs) sahnenin durumunu buradan okur.
+if (typeof window !== "undefined" && new URLSearchParams(window.location.search).has("e2e"))
+  (window as unknown as { __frame: typeof frame }).__frame = frame;
+
 export function Director() {
   useFrame((state) => {
     frame.time = state.clock.elapsedTime;

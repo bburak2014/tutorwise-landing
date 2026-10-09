@@ -132,3 +132,11 @@ for (const locale of locales) {
     });
   }
 }
+
+test("the built scripts request screenshots and posters with the current content version", async () => {
+  const { assetVersion } = await import("../lib/asset-version.ts");
+  const version = assetVersion(["public/screens", "public/poster"]);
+  const chunks = readdirSync(path.join(out, "_next/static/chunks")).filter((f) => f.endsWith(".js"));
+  const code = chunks.map((f) => read(`_next/static/chunks/${f}`)).join("\n");
+  assert.ok(code.includes(version), `version ${version} not in the built scripts`);
+});

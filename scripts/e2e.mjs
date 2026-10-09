@@ -178,8 +178,45 @@ try {
     await settle();
   }
 
+  // 2a. Menüden gelinen her bölümde 3D bir nesne gösterir; geçiş bitince
+  // sahne boş kalmaz (Özellikler'e gelince takvim belirip kaybolmamalı).
+  const shown = {};
+  for (const href of ["#features", "#about", "#audiences", "#download", "#features"]) {
+    await click(desk, `document.querySelector('header nav a[href="${href}"]')`);
+    await wait(2200);
+    shown[href] = await desk.eval(`+Math.max(...Object.values(window.__frame.presence)).toFixed(2)`);
+  }
+  check("every menu link lands on a section whose 3D object stays fully visible", Object.values(shown).every((v) => v > 0.99), shown);
+  await settle();
+
+  // 2a'. Kaydırma iki sahnenin tam ortasında (nesnelerin ikisinin de
+  // görünmediği yerde) bırakılınca geçiş kendiliğinden tamamlanır; sahne
+  // yarım ya da saydam kalmaz, beklerken de her karede çizilmez.
+  const midway = {};
+  for (const scene of ["chapter-live", "chapter-packages", "audiences"]) {
+    const top = await desk.eval(`Math.round([...document.querySelectorAll('[data-scene="${scene}"]')].find((e) => e.getClientRects().length).getBoundingClientRect().top + scrollY)`);
+    // Biraz yukarıdan, sakin adımlarla (saniyede ~750 px) tam ortaya kadar.
+    await scrollTo(desk, top - 450 - 240);
+    await wait(1500);
+    for (let y = top - 450 - 210; y <= top - 450; y += 30) {
+      await scrollTo(desk, y);
+      await wait(40);
+    }
+    await wait(2000);
+    midway[scene] = await desk.eval(`({ shown: +Math.max(...Object.values(window.__frame.presence)).toFixed(2), beat: +window.__story.beat.toFixed(2), target: +window.__story.target.toFixed(2) })`);
+  }
+  await desk.eval(`window.__drawFrames = 0; window.__ticks = 0; 0`);
+  await wait(1500);
+  const parkedDraw = await desk.eval(`({ drawn: window.__drawFrames, frames: window.__ticks })`);
+  check(
+    "stopping between two scenes completes the transition (no half-faded object) and the canvas idles",
+    Object.values(midway).every((m) => m.shown > 0.99) && parkedDraw.drawn <= parkedDraw.frames * 0.6,
+    { ...midway, parkedDraw },
+  );
+  await settle();
+
   // 2b. Bölüm çizgisi: 01'den 05'e atlarken aradaki sayfalar çevrilmez.
-  const plan = await desk.eval(`Math.round(document.querySelector('[data-marker][data-scene="chapter-plan"]').getBoundingClientRect().top + scrollY)`);
+  const plan = await desk.eval(`Math.round(document.querySelector('#features [data-marker]').getBoundingClientRect().top + scrollY)`);
   await scrollTo(desk, plan + 40);
   await settle();
   const rail = await recordBeats(desk, () => click(desk, `document.querySelectorAll("#features nav button")[4]`));

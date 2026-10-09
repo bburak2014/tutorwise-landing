@@ -13,6 +13,7 @@ import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import sharp from "sharp";
+import { writeSmallScreen } from "./screens-small.mjs";
 import { launchChrome, wait } from "./lib/cdp.mjs";
 import { BOARD_LABEL, WEEK_LABEL, demoData, demoLocales } from "./demo-data.mjs";
 
@@ -357,6 +358,7 @@ async function capture(chrome, sessions, locale, d, fixture) {
         .resize({ width: device.out })
         .webp({ quality: 84, effort: 6 })
         .toFile(path.resolve("public/screens", locale, `${screen.id}.webp`));
+      await writeSmallScreen(path.resolve("public/screens", locale, `${screen.id}.webp`));
       if (page.consoleErrors.length) console.warn(`  ${locale}/${screen.id} konsol:`, page.consoleErrors.slice(0, 3));
     } finally {
       await page.close();

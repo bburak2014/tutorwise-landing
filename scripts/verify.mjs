@@ -200,7 +200,7 @@ try {
       loaded: (document.querySelector(".stage img")?.naturalWidth ?? 0) > 0,
     })`);
   });
-  check("no WebGL: poster instead of canvas", !r.canvas && r.loaded && r.poster === "/poster/wide-chapter-live.webp", r);
+  check("no WebGL: poster instead of canvas", !r.canvas && r.loaded && /^\/poster\/wide-chapter-live\.webp\?v=[0-9a-f]{10}$/.test(r.poster ?? ""), r);
 } finally {
   await plain.close();
 }

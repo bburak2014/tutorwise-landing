@@ -48,7 +48,9 @@ export function ChapterStage({ chapters, railLabel }: Readonly<{ chapters: Chapt
         <span
           key={chapter.key}
           data-marker
-          data-scene={`chapter-${chapter.key}`}
+          // İlk özelliğin sahnesi bölümün başlığından başlar (Chapters.tsx);
+          // buradaki işaret yalnız bölüm çizgisindeki 01 için.
+          data-scene={i === 0 ? undefined : `chapter-${chapter.key}`}
           aria-hidden="true"
           className="pointer-events-none absolute left-0 hidden h-px w-px lg:block"
           style={{ top: `${i * 100}svh` }}
@@ -97,7 +99,9 @@ export function ChapterStage({ chapters, railLabel }: Readonly<{ chapters: Chapt
                 data-chapter
                 className="scene chapter relative flex min-h-svh items-center py-24 lg:absolute lg:inset-0 lg:min-h-0 lg:py-0"
               >
-                <span data-scene={`chapter-${chapter.key}`} aria-hidden="true" className="absolute top-0 lg:hidden" />
+                {i > 0 && (
+                  <span data-scene={`chapter-${chapter.key}`} aria-hidden="true" className="absolute top-0 lg:hidden" />
+                )}
                 <span
                   aria-hidden="true"
                   className="chapter-numeral pointer-events-none absolute -left-8 -top-[0.42em] hidden select-none font-display text-[clamp(10rem,18vw,17rem)] font-semibold leading-none lg:block"

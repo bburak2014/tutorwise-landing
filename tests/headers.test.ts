@@ -34,3 +34,16 @@ test("CSP still forbids eval and other origins for scripts", () => {
   assert.ok(!scripts.includes("'unsafe-eval'"));
   assert.ok(!scripts.includes("*") && !scripts.includes("https:"));
 });
+
+/** _headers'ta bir yol kuralının Cache-Control değeri. */
+function cacheControl(rule: string) {
+  const lines = readFileSync("public/_headers", "utf8").split("\n");
+  const at = lines.findIndex((line) => line.trim() === rule);
+  const value = lines.slice(at + 1).find((line) => line.trim().startsWith("Cache-Control:"));
+  return at < 0 ? null : (value?.trim().slice("Cache-Control:".length).trim() ?? null);
+}
+
+test("screenshots and posters are cached for a year (their URLs carry a content version)", () => {
+  for (const rule of ["/screens/*", "/poster/*"])
+    assert.equal(cacheControl(rule), "public, max-age=31536000, immutable", rule);
+});

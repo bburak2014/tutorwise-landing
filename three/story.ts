@@ -5,8 +5,11 @@ import type { Layout } from "./choreography.ts";
 export const story = {
   /** Yumuşatılmış beat; sahne bunu okur. */
   beat: 0,
-  /** Kaydırmanın şu anki beat'i; `beat` buna doğru yumuşakça gider. */
+  /** Kaydırmanın şu anki beat'i. */
   target: 0,
+  /** `beat`in varacağı yer: kaydırmanın beat'i, ya da kaydırma bir geçişin
+   *  ortasında durduysa geçişin tamamlandığı kenar (choreography: restingBeat). */
+  rest: 0,
   /** İmlecin görünüm alanındaki konumu (-1..1); dokunmatikte 0. */
   pointerX: 0,
   pointerY: 0,

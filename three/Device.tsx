@@ -16,6 +16,7 @@ import {
 import type { DeviceKind, ScreenId } from "./choreography.ts";
 import { fading, type Fade } from "./fade.ts";
 import { drawScreen } from "./screenArt.ts";
+import { versioned } from "../lib/assets.ts";
 import { story } from "./story.ts";
 import { canvasTexture } from "./textures.ts";
 
@@ -100,7 +101,9 @@ function useScreenTextures() {
     const locale = document.documentElement.lang;
     const loader = new TextureLoader();
     for (const id of SCREENS) {
-      loader.load(`/screens/${locale}/${id}.webp`, async (texture) => {
+      // Dar ekranda cihazlar küçük: küçük görüntüler (scripts/screens-small.mjs).
+      const size = story.layout === "narrow" ? ".sm" : "";
+      loader.load(versioned(`/screens/${locale}/${id}${size}.webp`), async (texture) => {
         // Görsel arka planda çözülür ve hemen ekran kartına yüklenir; cihaz
         // ilk kez yükseldiğinde bu iş kareyi dondurmaz.
         await (texture.image as HTMLImageElement).decode?.().catch(() => {});
