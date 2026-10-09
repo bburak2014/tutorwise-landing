@@ -187,6 +187,12 @@ try {
     shown[href] = await desk.eval(`+Math.max(...Object.values(window.__frame.presence)).toFixed(2)`);
   }
   check("every menu link lands on a section whose 3D object stays fully visible", Object.values(shown).every((v) => v > 0.99), shown);
+  // Özellikler başlığı geniş ekranda sol sütunda kalır; sağ yarı 3D nesnenin
+  // (takvim) yeridir, başlığın üstüne binmez.
+  await click(desk, `document.querySelector('header nav a[href="#features"]')`);
+  await wait(1500);
+  const heading = await desk.eval(`(() => { const b = document.querySelector("#features-title").getBoundingClientRect(); return { right: Math.round(b.right), top: Math.round(b.top), half: Math.round(innerWidth * 0.55) }; })()`);
+  check("the features heading stays in the left column, clear of the 3D object", heading.right <= heading.half && heading.top >= 0, heading);
   await settle();
 
   // 2a'. Kaydırma iki sahnenin tam ortasında (nesnelerin ikisinin de
@@ -407,6 +413,14 @@ try {
     menuOpen && phoneState.menuClosed && Math.abs(phoneState.landed - phoneState.header) <= 4 && phoneJump.between === 0,
     { menuOpen, ...phoneState, ...phoneJump },
   );
+  // Telefonda 3D ekranın üst kısmında; Özellikler başlığı onun altından
+  // başlar (takvimle çakışmaz).
+  await click(phone, menuButton);
+  await wait(500);
+  await click(phone, `[...document.querySelectorAll('header a[href="#features"]')].find((a) => a.offsetWidth > 0)`);
+  await wait(2000);
+  const phoneHeading = await phone.eval(`({ top: Math.round(document.querySelector("#features-title").getBoundingClientRect().top), clear: Math.round(innerHeight * 0.42) })`);
+  check("phone: the features heading starts below the 3D object", phoneHeading.top >= phoneHeading.clear, phoneHeading);
   check("phone: no console errors", phone.consoleErrors.length === 0, phone.consoleErrors.slice(0, 3));
   await phone.close();
 } finally {
