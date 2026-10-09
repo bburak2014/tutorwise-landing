@@ -6,7 +6,6 @@ import {
   compositions,
   focusAt,
   jumpPresence,
-  logoOpen,
   presence,
   sceneComposition,
   sceneOf,
@@ -29,8 +28,6 @@ export const frame = {
   presence: Object.fromEntries(compositions.map((c) => [c, 0])) as Record<Composition, number>,
   /** Her sahnenin oturma oranı (0–1); nesnelerin iç hareketleri izler. */
   focus: scenes.map(() => 0),
-  /** Logonun katmanlarının ayrılması (Biz kimiz). */
-  open: 0,
   /** Şu an görünen (ya da gelmekte olan) nesnenin sahnesi. */
   scene: 0,
   camera: { dolly: 1, orbit: 0, tilt: 0 } as CameraMove,
@@ -44,7 +41,8 @@ const mix = (a: CameraMove, b: CameraMove, t: number): CameraMove => ({
 
 /** Doğrudan geçiş: aradaki sahneler oynatılmaz, eski nesne olduğu gibi
  *  solar (ekranı açık kalır), yenisi belirirken kendi hareketini yapar. Aynı
- *  nesne iki sahnede de varsa (logo) bir pozdan ötekine yumuşakça geçer. */
+ *  nesne iki sahnede de varsa (açılış ve kapanıştaki dizüstü) bir pozdan
+ *  ötekine yumuşakça geçer. */
 function jumping(jump: NonNullable<typeof story.jump>, k: number) {
   const source = sceneOf(jump.from);
   const target = sceneOf(jump.to);
@@ -56,7 +54,6 @@ function jumping(jump: NonNullable<typeof story.jump>, k: number) {
   frame.focus[source] = focusAt(jump.from, source) * (same ? 1 - t : 1);
   frame.focus[target] = Math.max(frame.focus[target], arrive);
   frame.scene = k < 0.5 ? source : target;
-  frame.open = logoOpen(jump.from) + (logoOpen(jump.to) - logoOpen(jump.from)) * t;
   frame.camera = mix(cameraAt(jump.from, story.layout), cameraAt(jump.to, story.layout), t);
 }
 
@@ -65,7 +62,6 @@ function following(beat: number) {
   for (let s = 0; s < scenes.length; s++) frame.focus[s] = focusAt(beat, s);
   const stage = stageAt(beat);
   frame.scene = stage.t < 0.5 ? stage.from : stage.to;
-  frame.open = logoOpen(beat);
   frame.camera = cameraAt(beat, story.layout);
 }
 

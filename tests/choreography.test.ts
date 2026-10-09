@@ -8,10 +8,11 @@ import {
   compositions,
   focusAt,
   inkProgress,
+  pageTurn,
+  riffle,
   isCut,
   jumpPresence,
   sceneOf,
-  logoOpen,
   presence,
   sceneComposition,
   scenes,
@@ -43,10 +44,12 @@ test("beatFromScroll treats a gap between sections as part of the earlier one", 
 test("every scene has a composition, and each composition is used", () => {
   assert.equal(sceneComposition.length, scenes.length);
   for (const c of compositions) assert.ok(sceneComposition.includes(c), c);
-  // Açılışta logo yok: kendi sahnesi (dizüstü ve çevresindeki ders nesneleri).
+  // 3D logo hiçbir sahnede yok: açılış ve kapanış dizüstü ile ders
+  // nesneleri, Biz kimiz açılan kitap.
   assert.equal(sceneComposition[0], "hero");
-  assert.equal(sceneComposition[1], "logo");
-  assert.equal(sceneComposition.at(-1), "logo");
+  assert.equal(sceneComposition[1], "book");
+  assert.equal(sceneComposition.at(-1), "hero");
+  assert.ok(!(compositions as readonly string[]).includes("logo"));
 });
 
 test("stageAt holds a scene around its reading point and moves to the next between them", () => {
@@ -77,11 +80,12 @@ test("presence: the outgoing object dissolves first, the incoming one appears la
   }
 });
 
-test("the opening shows no logo; the logo arrives in the about scene", () => {
+test("the book appears only in the about scene", () => {
   assert.equal(presence(0.5).hero, 1);
-  assert.equal(presence(0.5).logo, 0);
-  assert.equal(presence(1.5).logo, 1);
+  assert.equal(presence(0.5).book, 0);
+  assert.equal(presence(1.5).book, 1);
   assert.equal(presence(1.5).hero, 0);
+  for (let s = 0; s < scenes.length; s++) if (s !== 1) assert.equal(presence(s + 0.5).book, 0, `scene ${s}`);
 });
 
 
@@ -89,13 +93,6 @@ test("focusAt is 1 at a scene's reading point and 0 halfway to the next", () => 
   assert.equal(focusAt(4.5, 4), 1);
   assert.equal(focusAt(5, 4), 0);
   assert.equal(focusAt(4.5, 5), 0);
-});
-
-test("logoOpen opens the logo layers in the about scene and closes them for the finale", () => {
-  assert.equal(logoOpen(0.5), 0);
-  assert.equal(logoOpen(1.5), 1);
-  assert.ok(logoOpen(1) > 0 && logoOpen(1) < 1);
-  assert.equal(logoOpen(scenes.length - 0.5), 0);
 });
 
 test("cameraAt follows each scene's camera; the everywhere scene keeps the camera still", () => {
@@ -162,4 +159,22 @@ test("jumpPresence goes straight from the old object to the new one", () => {
   assert.equal(jumpPresence(2.5, 7.4, 0).calendar, 1);
   assert.equal(jumpPresence(2.5, 7.4, 1).roles, 1);
   assert.equal(jumpPresence(2.5, 7.4, 1).calendar, 0);
+});
+
+test("pageTurn turns pages one after another", () => {
+  assert.ok(near(pageTurn(2.5, 0), 1));
+  assert.ok(near(pageTurn(2.5, 2), 0.5));
+  assert.ok(near(pageTurn(2.5, 3), 0));
+});
+
+test("riffle: the top pages lift while the cover opens and settle back", () => {
+  for (const k of [0, 1, 2]) {
+    assert.equal(riffle(0, k), 0);
+    assert.equal(riffle(1, k), 0);
+    const peak = Math.max(...Array.from({ length: 101 }, (_, i) => riffle(i / 100, k)));
+    assert.ok(peak > 0.1, `leaf ${k} lifts`);
+  }
+  // Üstteki sayfa en çok kalkar; alttakiler daha az.
+  const peak = (k: number) => Math.max(...Array.from({ length: 101 }, (_, i) => riffle(i / 100, k)));
+  assert.ok(peak(0) > peak(1) && peak(1) > peak(2));
 });

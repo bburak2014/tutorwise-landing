@@ -20,14 +20,14 @@ import {
   Vector3,
 } from "three";
 import { brand } from "@/lib/brand.ts";
-import { smoothstep } from "../choreography.ts";
+import { scenes, smoothstep } from "../choreography.ts";
 import { Laptop, type LaptopState } from "../Device.tsx";
 import { frame } from "../Director.tsx";
 import { fading, type Fade } from "../fade.ts";
 import { story } from "../story.ts";
 import { glassy, glossy, roundedBox, useComposition } from "./kit.tsx";
 
-/* Açılış: dizüstü bilgisayarın kapağı açılır, ekranda uygulamanın canlı ders
+/* Açılış ve kapanış: dizüstü bilgisayarın kapağı açılır, ekranda uygulamanın canlı ders
    tahtası belirir; ekranın arkasından çıkan ders nesneleri (kitap, kep,
    kalem, gönye, atom) eğik bir yörüngede bilgisayarın çevresinde döner.
    Teknoloji (bilgisayar, canlı tahta) ve eğitim (nesneler) bir arada. Işık
@@ -47,6 +47,7 @@ const ORBIT = {
 };
 const SPIN = 0.12; // rad/sn: bir tur ~50 sn
 const OBJECTS = 5;
+const LAST = scenes.length - 1;
 
 /** n'inci nesnenin yörüngedeki yeri (açı θ). */
 export function orbitPoint(theta: number, spread = 1, out = new Vector3()) {
@@ -323,9 +324,18 @@ export function Hero() {
     const still = story.reduced || story.poster;
     const intro = still ? 1 : Math.min(1, story.intro);
     const t = frame.time;
-    const focus = frame.focus[0];
-    // Dar ekranda sahne üstte ve küçük; açılış nesnesi biraz büyütülür.
-    frameGroup.current?.scale.setScalar(story.layout === "narrow" ? 1.25 : 1);
+    // Aynı sahne açılışta (0) ve kapanışta (son) görünür. Kapanışta metin
+    // ortada olduğu için geniş ekranda sağa, geriye çekilir ve küçülür; iki
+    // sahne arasındaki doğrudan geçişte bu duruş yumuşakça değişir.
+    const opening = frame.focus[0];
+    const closing = frame.focus[LAST];
+    const focus = Math.max(opening, closing);
+    let aside = 0;
+    if (story.layout === "wide") aside = opening + closing > 0 ? closing / (opening + closing) : Number(frame.scene >= LAST - 1);
+    // Dar ekranda sahne üstte ve küçük; nesne biraz büyütülür.
+    const grow = story.layout === "narrow" ? 1.25 : 1;
+    frameGroup.current?.position.set(0.95 * aside, 0.1 * aside, -0.7 * aside);
+    frameGroup.current?.scale.setScalar(grow * (1 - 0.3 * aside));
     hero.laptop.open = smoothstep(0.04, 0.38, intro);
     hero.laptop.reveal = smoothstep(0.3, 0.62, intro);
     if (laptop.current) laptop.current.position.y = -0.42 + (still ? 0 : Math.sin(t * 0.7) * 0.025);
