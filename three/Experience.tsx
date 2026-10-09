@@ -21,6 +21,7 @@ import { Director } from "./Director.tsx";
 import { eachFadeVariant } from "./fade.ts";
 import { Scenes } from "./Scenes.tsx";
 import { Studio } from "./Studio.tsx";
+import type { Tier } from "./quality.ts";
 import { story } from "./story.ts";
 // R3F tuvali saatini kurmadan önce: bilinen tek uyarıyı süz (three/console.ts).
 installThreeConsole();
@@ -28,9 +29,10 @@ installThreeConsole();
 // Efekt paketi (postprocessing) yalnız güçlü cihazlarda indirilir.
 const Effects = lazy(() => import("./Effects.tsx").then((m) => ({ default: m.Effects })));
 
-/** Ekran piksel yoğunluğu üst sınırı: Retina'da 2× yerine 1,5× çizilir
- *  (piksel sayısı %44 azalır, fark gözle seçilmez). */
-const MAX_DPR = { high: 1.5, low: 1 } as const;
+/** Ekran piksel yoğunluğu üst sınırı. Bilgisayarda Retina'da 2× yerine 1,5×
+ *  (piksel sayısı %44 azalır, fark gözle seçilmez); telefonda nesneler küçük
+ *  ve ekran 3× olduğu için 2× (1× bulanık ve tırtıklı görünür). */
+const MAX_DPR = { high: 1.5, phone: 2, low: 1 } as const;
 
 /** Tuval yalnız gerektiğinde çizilir (frameloop="demand"):
  *  - kaydırma, imleç ya da süren bir geçiş varken her karede,
@@ -141,7 +143,7 @@ function Warmup({ onReady, effects }: Readonly<{ onReady: () => void; effects: b
 export default function Experience({
   tier,
   onReady,
-}: Readonly<{ tier: "high" | "low"; onReady: () => void }>) {
+}: Readonly<{ tier: Tier; onReady: () => void }>) {
   const [dpr, setDpr] = useState<number>(MAX_DPR[tier]);
   const [effects, setEffects] = useState(tier === "high");
   const decline = useCallback(() => {

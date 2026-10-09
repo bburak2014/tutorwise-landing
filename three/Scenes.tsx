@@ -15,7 +15,7 @@ import { story } from "./story.ts";
  *  çevresinde döner. */
 export const STAGE: Record<Layout, { x: number; y: number; z: number; scale: number }> = {
   wide: { x: 1.85, y: -0.1, z: 0, scale: 1 },
-  narrow: { x: 0, y: 1.1, z: 0, scale: 0.5 },
+  narrow: { x: 0, y: 1.15, z: 0, scale: 0.64 },
 };
 
 export function Scenes() {

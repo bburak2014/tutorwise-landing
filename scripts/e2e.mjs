@@ -413,6 +413,13 @@ try {
     menuOpen && phoneState.menuClosed && Math.abs(phoneState.landed - phoneState.header) <= 4 && phoneJump.between === 0,
     { menuOpen, ...phoneState, ...phoneJump },
   );
+  // Telefonda 3D, ekranın piksel yoğunluğunda (en fazla 2×) çizilir; 1×
+  // çizim 3× ekranda bulanık ve tırtıklı görünür.
+  for (let i = 0; i < 60 && !(await phone.eval(`Boolean(document.querySelector(".stage canvas"))`)); i++) await wait(250);
+  await wait(1500);
+  const phoneCanvas = await phone.eval(`({ ratio: +(document.querySelector(".stage canvas").width / innerWidth).toFixed(2), dpr: devicePixelRatio })`);
+  check("phone: the 3D is drawn at the screen's density (2×), not blurry 1×", phoneCanvas.ratio >= 1.99 && phoneCanvas.ratio <= 2.01, phoneCanvas);
+
   // Telefonda 3D ekranın üst kısmında; Özellikler başlığı onun altından
   // başlar (takvimle çakışmaz).
   await click(phone, menuButton);

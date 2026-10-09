@@ -1,7 +1,7 @@
 "use client";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
-import { prefersReducedMotion, startingTier, supportsWebGL } from "@/three/quality.ts";
+import { prefersReducedMotion, startingTier, supportsWebGL, type Tier } from "@/three/quality.ts";
 import { story } from "@/three/story.ts";
 import { ScenePoster } from "./ScenePoster.tsx";
 
@@ -36,7 +36,7 @@ function firstVisitThisSession(): boolean {
  *  - WebGL yoksa poster kalır. */
 export function Stage() {
   const [mode, setMode] = useState<Mode | null>(null);
-  const [tier, setTier] = useState<"high" | "low" | null>(null);
+  const [tier, setTier] = useState<Tier | null>(null);
   const [visible, setVisible] = useState(false);
   const [posterGone, setPosterGone] = useState(false);
   const [noWebGL, setNoWebGL] = useState(false);
