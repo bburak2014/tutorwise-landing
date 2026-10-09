@@ -9,6 +9,7 @@ import {
   focusAt,
   inkProgress,
   pageTurn,
+  restingBeat,
   riffle,
   isCut,
   jumpPresence,
@@ -177,4 +178,23 @@ test("riffle: the top pages lift while the cover opens and settle back", () => {
   // Üstteki sayfa en çok kalkar; alttakiler daha az.
   const peak = (k: number) => Math.max(...Array.from({ length: 101 }, (_, i) => riffle(i / 100, k)));
   assert.ok(peak(0) > peak(1) && peak(1) > peak(2));
+});
+
+test("restingBeat completes a transition the scroll stopped in, towards the scene the text shows", () => {
+  // Okuma anının çevresinde (geçiş yok) sahne olduğu yerde kalır.
+  for (const beat of [0.5, 2.5, 2.65, 3.32, 9.5]) assert.deepEqual(restingBeat(beat), { beat, zone: null }, `beat ${beat}`);
+  // 2 → 3 geçişi 2.7–3.3 arasında; ortadan önce durulursa 2'ye, sonra 3'e tamamlanır.
+  assert.deepEqual(restingBeat(2.9), { beat: 2.7, zone: [2.7, 3.3] });
+  assert.deepEqual(restingBeat(3), { beat: 3.3, zone: [2.7, 3.3] });
+  assert.deepEqual(restingBeat(3.2), { beat: 3.3, zone: [2.7, 3.3] });
+  // Özellik metni ortadan bir piksel (≈0.0001 beat) önce değişir; sahne de.
+  assert.equal(restingBeat(3.9999).beat, 4.3);
+  assert.equal(restingBeat(3.9988).beat, 3.7);
+});
+
+test("at every resting beat one object is fully shown", () => {
+  for (let b = 0.5; b <= scenes.length - 0.5; b += 0.01) {
+    const shown = Math.max(...Object.values(presence(restingBeat(b).beat)));
+    assert.ok(shown > 0.999, `beat ${b.toFixed(2)} rests with ${shown}`);
+  }
 });

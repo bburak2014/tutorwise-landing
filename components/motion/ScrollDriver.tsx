@@ -1,6 +1,6 @@
 "use client";
 import { useEffect } from "react";
-import { beatFromScroll, isCut } from "@/three/choreography.ts";
+import { beatFromScroll, isCut, restingBeat } from "@/three/choreography.ts";
 import { layoutFor, prefersReducedMotion } from "@/three/quality.ts";
 import { story } from "@/three/story.ts";
 import { motionReady } from "./motion.ts";
@@ -9,6 +9,8 @@ import { motionReady } from "./motion.ts";
 const RACE_SPEED = 3;
 /** Hızlı kaydırma bu kadar süre (ms) durunca 3D yeni yerine geçer. */
 const SETTLE_MS = 160;
+/** Kaydırma bu kadar süre (ms) durunca yarıda kalan bir geçiş tamamlanır. */
+const IDLE_MS = 220;
 
 /** Kaydırmayı 3D hikâyeye bağlar: sahnelerin (data-scene) konumlarını ölçer,
  *  görünüm alanının ortasından beat'i hesaplar; GSAP ile yumuşatır. Sayfa
@@ -29,10 +31,10 @@ export function ScrollDriver() {
       story.poster = true;
       story.reduced = true;
       story.layout = layoutFor(window.innerWidth, window.innerHeight);
-      story.beat = story.target = Number(poster) || 0;
+      story.beat = story.target = story.rest = Number(poster) || 0;
       document.documentElement.classList.add("poster-mode");
       (window as unknown as { setPosterBeat: (beat: number) => void }).setPosterBeat = (beat) => {
-        story.beat = story.target = beat;
+        story.beat = story.target = story.rest = beat;
       };
       return;
     }
@@ -72,8 +74,24 @@ export function ScrollDriver() {
     };
     let racing = false;
     let settle = 0;
+    let idle = 0;
     let speed = 0;
     let lastAt = performance.now();
+    /** Kaydırmanın içinde durduğu geçiş: kaydırma bu aralıkta kaldıkça 3D
+     *  geçişi tamamlanmış hâliyle (kenarda) bekler. */
+    let parked: [number, number] | null = null;
+    /** 3D'nin varacağı yer: geçişin ortasıysa tamamlandığı kenar. */
+    const restAt = (beat: number) => {
+      const resting = restingBeat(beat);
+      parked = resting.zone;
+      story.rest = resting.beat;
+      return resting.beat;
+    };
+    /** Kaydırma durdu: yarıda kalan geçiş metnin gösterdiği sahneye tamamlanır. */
+    const rest = () => {
+      if (racing) return;
+      smooth(restAt(story.target));
+    };
     /** 3D kaydırmayla yarışmaz: o anki sahnede bekler, kaydırma durunca geçer. */
     const race = () => {
       if (!racing) hold(story.beat);
@@ -83,8 +101,9 @@ export function ScrollDriver() {
         racing = false;
         speed = 0;
         const from = story.beat;
-        hold(story.target);
-        if (from !== story.target) story.jump = { from, to: story.target, start: performance.now() };
+        const to = restAt(story.target);
+        hold(to);
+        if (from !== to) story.jump = { from, to, start: performance.now() };
       }, SETTLE_MS);
     };
     const update = () => {
@@ -95,14 +114,24 @@ export function ScrollDriver() {
       speed = speed * 0.5 + (Math.abs(story.target - previous) / Math.max(0.001, (now - lastAt) / 1000)) * 0.5;
       lastAt = now;
       story.activeAt = now;
-      if (reduced) story.beat = Math.floor(story.target) + 0.5;
+      window.clearTimeout(idle);
+      if (reduced) story.beat = story.rest = Math.floor(story.target) + 0.5;
       else if (racing || isCut(previous, story.target) || speed > RACE_SPEED) race();
-      else smooth(story.target);
+      else if (parked && story.target >= parked[0] && story.target <= parked[1]) {
+        // Geçişin içinde kaydırılıyor: 3D tamamlanmış hâlde bekler; kaydırma
+        // ortayı geçerse (metin öbür bölüme geçer) öbür kenara yumuşakça geçer.
+        smooth(restAt(story.target));
+      } else {
+        parked = null;
+        story.rest = story.target;
+        smooth(story.target);
+        idle = window.setTimeout(rest, IDLE_MS);
+      }
     };
 
     measure();
     story.target = current();
-    story.beat = reduced ? Math.floor(story.target) + 0.5 : story.target;
+    story.beat = story.rest = reduced ? Math.floor(story.target) + 0.5 : restAt(story.target);
 
     const onResize = () => {
       measure();
@@ -122,6 +151,7 @@ export function ScrollDriver() {
     return () => {
       alive = false;
       window.clearTimeout(settle);
+      window.clearTimeout(idle);
       observer.disconnect();
       window.removeEventListener("scroll", update);
       window.removeEventListener("resize", onResize);

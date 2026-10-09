@@ -51,7 +51,7 @@ function FrameScheduler({ onDecline }: Readonly<{ onDecline: () => void }>) {
       id = requestAnimationFrame(loop);
       tick += 1;
       const moving =
-        Math.abs(story.beat - story.target) > 0.0005 ||
+        Math.abs(story.beat - story.rest) > 0.0005 ||
         story.intro < 1 ||
         now - story.activeAt < 1000 ||
         now < story.busyUntil ||
